@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.the2davi.lab.api.dto.ProxmoxNodeDto;
+import dev.the2davi.lab.api.dto.ProxmoxTaskDto;
+import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
 import dev.the2davi.lab.api.service.ProxmoxService;
 
@@ -54,5 +56,22 @@ public class ProxmoxController {
 		
 		ProxmoxTaskStatusDto statusInfo = pveService.getTaskStatus(node, upid);
 		return ResponseEntity.ok(statusInfo);
+	}
+	
+	@GetMapping("/nodes/{node}/tasks/{upid}/log")
+	public ResponseEntity<List<ProxmoxTaskLogDto>> getTaskLog(
+			@PathVariable("node") String node,
+			@PathVariable("upid") String upid) {
+		
+		List<ProxmoxTaskLogDto> logs = pveService.getTaskLog(node, upid);
+		return ResponseEntity.ok(logs);
+	}
+	
+	@GetMapping("nodes/{node}/tasks")
+	public ResponseEntity<List<ProxmoxTaskDto>> getTaskList(
+			@PathVariable("node") String node) {
+		
+		List<ProxmoxTaskDto> tasks = pveService.getTaskList(node);
+		return ResponseEntity.ok(tasks);
 	}
 }

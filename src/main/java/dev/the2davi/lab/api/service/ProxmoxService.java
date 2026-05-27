@@ -12,10 +12,11 @@ import org.springframework.web.client.RestClient;
 
 import dev.the2davi.lab.api.dto.ProxmoxNodeDto;
 import dev.the2davi.lab.api.dto.ProxmoxResponse;
+import dev.the2davi.lab.api.dto.ProxmoxTaskDto;
+import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
-import lombok.extern.slf4j.Slf4j;
 
-@Service @Slf4j
+@Service
 public class ProxmoxService {
 
 	private static final Logger log = LoggerFactory.getLogger(ProxmoxService.class);
@@ -96,4 +97,33 @@ public class ProxmoxService {
 		log.warn("작업이 60초 이상 진행 중... Watcher Thread Out..!");
 	}
 	
+	public List<ProxmoxTaskLogDto> getTaskLog(String node, String upid) {
+		String uri = String.format("/nodes/%s/tasks/%s/log", node, upid);
+		
+		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxTaskLogDto>>> responseType = new ParameterizedTypeReference<>() {};
+		
+		ProxmoxResponse<List<ProxmoxTaskLogDto>> response = restClient.get()
+				.uri(uri)
+				.retrieve()
+				.body(responseType);
+		
+		return response != null && response.data() != null
+				? response.data()
+				: Collections.emptyList();
+	}
+	
+	public List<ProxmoxTaskDto> getTaskList(String node) {
+		String uri = String.format("/nodes/%s/tasks", node);
+		
+		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxTaskDto>>> responseType = new ParameterizedTypeReference<>() {};
+		
+		ProxmoxResponse<List<ProxmoxTaskDto>> response = restClient.get()
+				.uri(uri)
+				.retrieve()
+				.body(responseType);
+		
+		return response != null && response.data() != null
+				? response.data()
+				: Collections.emptyList();
+	}
 }
