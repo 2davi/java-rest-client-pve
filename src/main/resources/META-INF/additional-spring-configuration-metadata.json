@@ -1,0 +1,32 @@
+{"properties": [
+  {
+    "name": "jwt.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.secret'"
+  },
+  {
+    "name": "proxmox.api.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'proxmox.api.secret'"
+  },
+  {
+    "name": "proxmox.api.token",
+    "type": "java.lang.String",
+    "description": "A description for 'proxmox.api.token'"
+  },
+  {
+    "name": "proxmox.api.url",
+    "type": "java.lang.String",
+    "description": "A description for 'proxmox.api.url'"
+  },
+  {
+	"name": "proxmox.timeout.connect",
+	"type": "java.lang.Integer",
+	"description": "A description for 'proxmox.timeout.connect'"
+  },
+  {
+  "name": "proxmox.timeout.read",
+  "type": "java.lang.Integer",
+  "description": "A description for 'proxmox.timeout.read'"
+  }
+]}
