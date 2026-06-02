@@ -52,3 +52,14 @@ button:disabled {
     background-color: #555;
     cursor: not-allowed;
 }
+.dashboard-container { display: flex; gap: 20px; width: 1000px; margin: 0 auto; flex-direction: column; }
+.panel { background: #1e1e1e; padding: 20px; border-radius: 8px; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+.vm-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.vm-table th, .vm-table td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+.badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;}
+.badge.on { background: #2e7d32; }
+.badge.off { background: #c62828; }
+.btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; font-weight: bold;}
+.btn-start { background: #1976d2; color: white; }
+.btn-stop { background: #d32f2f; color: white; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }

@@ -2,6 +2,7 @@ package dev.the2davi.lab.api.service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,11 +11,14 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import dev.the2davi.lab.api.dto.CmpTaskHistoryDto;
 import dev.the2davi.lab.api.dto.ProxmoxNodeDto;
 import dev.the2davi.lab.api.dto.ProxmoxResponse;
 import dev.the2davi.lab.api.dto.ProxmoxTaskDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
+import dev.the2davi.lab.api.dto.ProxmoxVmDto;
+import dev.the2davi.lab.util.CmpUtils;
 
 @Service
 public class ProxmoxService {
@@ -112,12 +116,45 @@ public class ProxmoxService {
 				: Collections.emptyList();
 	}
 	
-	public List<ProxmoxTaskDto> getTaskList(String node) {
+//	public List<ProxmoxTaskDto> getTaskList(String node) {
+//		String uri = String.format("/nodes/%s/tasks", node);
+//		
+//		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxTaskDto>>> responseType = new ParameterizedTypeReference<>() {};
+//		
+//		ProxmoxResponse<List<ProxmoxTaskDto>> response = restClient.get()
+//				.uri(uri)
+//				.retrieve()
+//				.body(responseType);
+//		
+//		return response != null && response.data() != null
+//				? response.data()
+//				: Collections.emptyList();
+//	}
+	
+	public List<CmpTaskHistoryDto> getTaskList(String node) {
 		String uri = String.format("/nodes/%s/tasks", node);
 		
 		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxTaskDto>>> responseType = new ParameterizedTypeReference<>() {};
 		
 		ProxmoxResponse<List<ProxmoxTaskDto>> response = restClient.get()
+				.uri(uri)
+				.retrieve()
+				.body(responseType);
+		
+		if(response == null || response.data() == null) {
+			return Collections.emptyList();
+		}
+		
+		return response.data().stream()
+				.map(CmpUtils::parseToCmpTask)
+				.collect(Collectors.toList());
+	}
+	
+	public List<ProxmoxVmDto> getVmList(String node) {
+		String uri = String.format("/nodes/%s/qemu", node);
+		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxVmDto>>> responseType = new ParameterizedTypeReference<>() {};
+		
+		ProxmoxResponse<List<ProxmoxVmDto>> response = restClient.get()
 				.uri(uri)
 				.retrieve()
 				.body(responseType);

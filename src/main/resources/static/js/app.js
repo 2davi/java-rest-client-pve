@@ -13,6 +13,8 @@ const app = createApp({
 		//let taskPollingTimer = null;
 		let logPollingTimer = null;
 		
+		const vmList = ref([]);
+		
 		/* Axios 기본 세팅 */
 		//1) 깡통 클라이언트 생성
 		const api = axios.create({
@@ -104,9 +106,42 @@ const app = createApp({
 			});
 		};
 		
+		
+		
+		const fetchVmList = async () => {
+			try{
+				const response = await api.get(`/proxmox/nodes/${targetNode.value}/qemu`);
+				vmList.value = response.data;
+			} catch(error) {
+				console.error("VM 목록 조회 실패", error);
+			}
+		};
+		
+		const controlVm = async (vmid, action) => {
+			if(!confirm(`${vmid}번 VM을 ${action} 하시겠습니까?`)) {
+				return;
+			}
+			
+			try{
+				const response = await api.post(`/proxmox/nodes/${targetNode.value}/qemu/${vmid}/status/${action}`);
+				const newUpid = response.data.upid;
+				if(newUpid) {
+					targetUpid.value = newUpid;
+					fetchTasks();
+					startWatchingLogs();
+				}
+			} catch(error) {
+				console.error(error);
+				alert("제어 실패")
+			}
+		};
+		
+		
 		onMounted(async () => {
 			await fetchToken();
 			await startWatchingTasks();
+			
+			await fetchVmList();
 		});
 		
 		onUnmounted(() => {
@@ -123,7 +158,9 @@ const app = createApp({
 			onTaskSelect,
 			startWatchingLogs,
 			stopWatchingLogs,
-			formatTime
+			formatTime,
+			vmList,
+			controlVm
 		};
 	}
 });
