@@ -1,4 +1,4 @@
-const { createApp, ref, onMounted, onUnmounted } = Vue;
+const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 
 const app = createApp({
 	setup() {
@@ -14,6 +14,59 @@ const app = createApp({
 		let logPollingTimer = null;
 		
 		const vmList = ref([]);
+		
+		let vmPollingTimer = null;
+		const formatUptime = seconds => {
+			if(!seconds || seconds <= 0) return '-';
+			const floored = Math.floor(seconds / 10) * 10;
+			
+			const h = Math.floor(floored/3600);
+			const m = Math.floor((floored%3600) / 60);
+			const s = floored%60;
+			
+			let result = '';
+			if(h>0) result += `${h}시간 `;
+			if(m>0) result += `${m}분 `;
+			result += `${s}초`;
+			
+			return result.trim();
+		};
+		const startWatchingVmList = () => {
+			if(vmPollingTimer) return;
+			vmPollingTimer = setInterval(fetchVmList, 10000);
+		};
+		const stopWatchingVmList = () => {
+			if(vmPollingTimer) clearInterval(vmPollingTimer);
+		};
+		
+		
+		/* VM List 정렬 테이블 */
+		const sortKey = ref('vmid');
+		const sortOrder = ref(1);
+		const sortBy = key => {
+			if(sortKey.value === key) {
+				sortOrder.value *= -1; //같은 컬럼 누르면 오름/내림차순 토글
+			} else {
+				sortKey.value = key;
+				sortOrder.value = 1;
+			}
+		};
+		const sortedVmList = computed(() => {
+			return [...vmList.value].sort((a,b) => {
+				let valA = a[sortKey.value];
+				let valB = b[sortKey.value];
+				
+				if(valA === undefined || valA === null) valA = '';
+				if(valB === undefined || valB === null) valB = '';
+				
+				if(typeof valA === 'string') valA = valA.toLowerCase();
+				if(typeof valB === 'string') valB = valB.toLowerCase();
+				
+				if(valA < valB) return -1 * sortOrder.value;
+				if(valA > valB) return 1 * sortOrder.value;
+			});
+		});
+		
 		
 		/* Axios 기본 세팅 */
 		//1) 깡통 클라이언트 생성
@@ -65,6 +118,8 @@ const app = createApp({
 				const lastLog = taskLogs.value[taskLogs.value.length -1];
 				if(lastLog && lastLog.t.startsWith('TASK ')) {
 					stopWatchingLogs();
+					
+					fetchVmList();
 				}
 			} catch(error) {
 				console.error("로그 조회 실패:", error);
@@ -142,10 +197,12 @@ const app = createApp({
 			await startWatchingTasks();
 			
 			await fetchVmList();
+			startWatchingVmList();
 		});
 		
 		onUnmounted(() => {
 			stopWatchingLogs();
+			stopWatchingVmList();
 		});
 		
 		//02. 템플릿(HTML)에서 쓸 변수와 함수들을 return.
@@ -160,7 +217,12 @@ const app = createApp({
 			stopWatchingLogs,
 			formatTime,
 			vmList,
-			controlVm
+			controlVm,
+			sortedVmList,
+			sortKey,
+			sortOrder,
+			sortBy,
+			formatUptime
 		};
 	}
 });

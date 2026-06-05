@@ -63,3 +63,42 @@ button:disabled {
 .btn-start { background: #1976d2; color: white; }
 .btn-stop { background: #d32f2f; color: white; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 클릭 가능한 정렬 헤더 표시 */
+.sortable { cursor: pointer; user-select: none; transition: color 0.2s; }
+.sortable:hover { color: #4CAF50; }
+
+/* 데이터 갱신 시 텍스트 배경이 번쩍이는 애니메이션 */
+/*
+@keyframes flash-update {
+    0% { background-color: rgba(76, 175, 80, 0.6); color: #fff; border-radius: 4px; }
+    100% { background-color: transparent; color: inherit; }
+}
+.flash-text {
+    display: inline-block;
+    padding: 2px 4px;
+    /* 애니메이션 1.5초 동안 실행 *
+    animation: flash-update 1.5s ease-out; 
+}
+.sort-icon { font-size: 10px; margin-left: 4px; color: #4CAF50; }
+*/
+
+/* 데이터 갱신 시 텍스트 자체 네온 발광 애니메이션 */
+@keyframes flash-update {
+    0% { 
+        color: #00ff00; /* 쨍한 터미널 초록색 */
+        text-shadow: 0 0 10px rgba(0, 255, 0, 0.8), 0 0 20px rgba(0, 255, 0, 0.5); /* 자체 발광 효과 */
+        transform: scale(1.05); /* 💡 아주 미세하게 튀어 오르는 쫄깃한 맛 추가 */
+    }
+    100% { 
+        color: inherit; 
+        text-shadow: none;
+        transform: scale(1);
+    }
+}
+
+.flash-text {
+    display: inline-block;
+    /* 애니메이션 시간을 1초로 살짝 줄여서 더 날렵하게 만듦 */
+    animation: flash-update 1.25s cubic-bezier(0.25, 0.8, 0.25, 1); 
+}
