@@ -1,5 +1,7 @@
 package dev.the2davi.lab.api.service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,6 +16,7 @@ import org.springframework.web.client.RestClient;
 import dev.the2davi.lab.api.dto.CmpTaskHistoryDto;
 import dev.the2davi.lab.api.dto.ProxmoxNodeDto;
 import dev.the2davi.lab.api.dto.ProxmoxResponse;
+import dev.the2davi.lab.api.dto.ProxmoxStorageDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
@@ -162,5 +165,32 @@ public class ProxmoxService {
 		return response != null && response.data() != null
 				? response.data()
 				: Collections.emptyList();
+	}
+	
+	
+	/* Storage */
+	public void createStorage(ProxmoxStorageDto dto) {
+		String uri = "/storage";
+		StringBuilder formData = new StringBuilder();
+		
+		formData.append("type=").append(dto.type())
+				.append("&storage=").append(dto.storage())
+				.append("&content=").append(dto.content() != null ? dto.content() : "images");
+		
+		if(dto.config() != null) {
+			dto.config().forEach((k,v) -> {
+				if(v != null && !v.toString().isEmpty()) {
+					String encodedV = URLEncoder.encode(v.toString(), StandardCharsets.UTF_8);
+					formData.append("&").append(k).append("=").append(encodedV);
+				}
+			});
+		}
+		
+		restClient.post()
+				.uri(uri)
+				.header("Content-Type", "application/x-www-form-urlencoded")
+				.body(formData.toString())
+				.retrieve()
+				.toBodilessEntity();
 	}
 }

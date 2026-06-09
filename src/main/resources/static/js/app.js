@@ -137,6 +137,7 @@ const app = createApp({
 		const onTaskSelect = () => {
 			stopWatchingLogs();
 			taskLogs.value = [];
+			startWatchingLogs();
 		};
 		
 		const startWatchingLogs = () => {
@@ -192,6 +193,42 @@ const app = createApp({
 		};
 		
 		
+		/* Storage */
+		const storageFormInit = {
+			type: 'nfs'
+			, storage: ''
+			, content: 'images,iso,backup'
+			, config: {}
+		}
+		const isStorageModalOpen = ref(false);
+		const storageForm = ref(storageFormInit);
+		
+		const openStorageModal = () => isStorageModalOpen.value = true;
+		const closeStorageModal = () => {
+			isStorageModalOpen.value = false;
+			storageForm.value = storageFormInit;
+		};
+		
+		const onTypeChange = () => {
+			storageForm.value.config = {};
+		};
+		const submitStorage = async () => {
+			if(!storageForm.value.storage) {
+				alert("스토리지 이름을 입력하세요.");
+				return;
+			}
+			
+			try{
+				await api.post('/proxmox/storage', storageForm.value);
+				alert(`[${storageForm.value.type}] 스토리지 '${sotrageForm.value.storage}' 추가 성공!`);
+				closeStorageModal();
+			} catch(error) {
+				console.error(error);
+				alert("스토리지 추가 실패!");
+			}
+		};
+		
+		
 		onMounted(async () => {
 			await fetchToken();
 			await startWatchingTasks();
@@ -222,7 +259,13 @@ const app = createApp({
 			sortKey,
 			sortOrder,
 			sortBy,
-			formatUptime
+			formatUptime,
+			isStorageModalOpen,
+			storageForm,
+			openStorageModal,
+			closeStorageModal,
+			onTypeChange,
+			submitStorage
 		};
 	}
 });

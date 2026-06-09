@@ -7,11 +7,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.the2davi.lab.api.dto.CmpTaskHistoryDto;
 import dev.the2davi.lab.api.dto.ProxmoxNodeDto;
+import dev.the2davi.lab.api.dto.ProxmoxStorageDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
 import dev.the2davi.lab.api.dto.ProxmoxVmDto;
@@ -94,5 +96,11 @@ public class ProxmoxController {
 	@GetMapping("/nodes/{node}/qemu")
 	public ResponseEntity<List<ProxmoxVmDto>> getVmList(@PathVariable("node") String node) {
 		return ResponseEntity.ok(pveService.getVmList(node));
+	}
+	
+	/* Storage */
+	public ResponseEntity<String> addStorage(@RequestBody ProxmoxStorageDto dto) {
+		pveService.createStorage(dto);
+		return ResponseEntity.ok(dto.type() + " 스토리지가 성공적으로 추가되었습니다.");
 	}
 }

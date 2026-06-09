@@ -14,7 +14,9 @@
 		<div class="panel">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
                 <h3 style="margin: 0;">Virtual Machines [Node: {{ targetNode }}]</h3>
-                
+				<button class="btn" style="background: #e67e22; margin-right: 15px;" @click="openStorageModal">
+                    💾 스토리지 추가
+                </button>
                 <div @click="sortBy('uptime')" class="sortable" style="font-size: 12px; color: #aaa; text-decoration: underline;">
                     <span v-if="sortKey === 'uptime'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
                     가동시간 정렬
@@ -81,6 +83,68 @@
             <div class="log-content">
                 <p v-for="log in taskLogs" :key="log.n">> {{ log.t }}</p>
                 <p v-if="isPolling" class="blinking-cursor">_</p>
+            </div>
+        </div>
+		
+		<div v-if="isStorageModalOpen" class="modal-overlay" @click.self="closeStorageModal">
+            <div class="modal-content">
+                <h3>클러스터 스토리지 마운트</h3>
+                
+                <div class="form-group">
+                    <label>스토리지 타입</label>
+                    <select v-model="storageForm.type" @change="onTypeChange">
+                        <option value="nfs">NFS (네트워크 파일 시스템)</option>
+                        <option value="lvmthin">LVM-Thin (로컬 씬 프로비저닝)</option>
+                        <option value="rbd">Ceph RBD (분산 블록 스토리지)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>스토리지 이름 (ID)</label>
+                    <input type="text" v-model="storageForm.storage" placeholder="예: my-storage" />
+                </div>
+
+                <template v-if="storageForm.type === 'nfs'">
+                    <div class="form-group">
+                        <label>NFS 서버 IP</label>
+                        <input type="text" v-model="storageForm.config.server" placeholder="예: 192.168.10.50" />
+                    </div>
+                    <div class="form-group">
+                        <label>Export 경로</label>
+                        <input type="text" v-model="storageForm.config.export" placeholder="예: /volume1/nfs" />
+                    </div>
+                </template>
+
+                <template v-if="storageForm.type === 'lvmthin'">
+                    <div class="form-group">
+                        <label>볼륨 그룹 (Volume Group)</label>
+                        <input type="text" v-model="storageForm.config.vgname" placeholder="예: pve" />
+                    </div>
+                    <div class="form-group">
+                        <label>씬 풀 (Thin Pool)</label>
+                        <input type="text" v-model="storageForm.config.thinpool" placeholder="예: data" />
+                    </div>
+                </template>
+                
+                <template v-if="storageForm.type === 'rbd'">
+                    <div class="form-group">
+                        <label>Ceph Pool 이름</label>
+                        <input type="text" v-model="storageForm.config.pool" placeholder="예: ceph-data" />
+                    </div>
+                </template>
+
+                <div class="form-group">
+                    <label>콘텐츠 용도</label>
+                    <select v-model="storageForm.content">
+                        <option value="images,iso,backup">VM 디스크, ISO, 백업</option>
+                        <option value="images">VM 디스크 전용</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn btn-start" @click="submitStorage">마운트 실행</button>
+                    <button class="btn btn-stop" @click="closeStorageModal">취소</button>
+                </div>
             </div>
         </div>
     </div>
