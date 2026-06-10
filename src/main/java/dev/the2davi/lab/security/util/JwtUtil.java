@@ -89,26 +89,31 @@ public class JwtUtil {
 		return (claims != null) ? claims.getSubject() : null;
 	}
 	
-	//JWT Token 발급
-	public String generateToken(String userId) {
-		return Jwts.builder()
-				.subject(userId)
-				.issuedAt(new java.util.Date())
-				.expiration(new java.util.Date(System.currentTimeMillis() + 1000 * 60 * 60 * /*24*/ 2))
-				.signWith(secretKey)
-				.compact();
-	}
+//	//JWT Token 발급
+//	public String generateToken(String userId) {
+//		return Jwts.builder()
+//				.subject(userId)
+//				.issuedAt(new java.util.Date())
+//				.expiration(new java.util.Date(System.currentTimeMillis() + 1000 * 60 * 60 * /*24*/ 2))
+//				.signWith(secretKey)
+//				.compact();
+//	}
 	
 	//JWT Token 발급
-	public String createToken(String username, String ticket, String CSRFPreventionToken) {
+	//* public String createToken(String username, String ticket, String CSRFPreventionToken) {
+	public String createToken(String username, String sessionId) {
+		long now = System.currentTimeMillis();
 		return Jwts.builder()
-				.claims()
-					.subject(username)
-					.issuedAt(new java.util.Date())
-					.add("pve_ticket", ticket)
-					.add("pve_csrf", CSRFPreventionToken)
-					.and()
-				.expiration(new java.util.Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
+//				.claims()
+//					.subject(username)
+//					.issuedAt(new java.util.Date())
+//					.add("pve_ticket", ticket)
+//					.add("pve_csrf", CSRFPreventionToken)
+//					.and()
+				.subject(username)
+				.claim("sid", sessionId)
+				.issuedAt(new java.util.Date(now))
+				.expiration(new java.util.Date(System.currentTimeMillis() + 1000 * 60 * 60 * /*24*/ 2))
 				.signWith(secretKey)
 				.compact();
 	}

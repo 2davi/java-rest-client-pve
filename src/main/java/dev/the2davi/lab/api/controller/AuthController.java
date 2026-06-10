@@ -15,7 +15,11 @@ import org.springframework.web.client.RestClient;
 import dev.the2davi.lab.api.dto.LoginRequestDto;
 import dev.the2davi.lab.api.dto.ProxmoxResponse;
 import dev.the2davi.lab.api.dto.ProxmoxTicketResponse;
+import dev.the2davi.lab.security.session.SecuritySession;
+import dev.the2davi.lab.security.session.SecuritySessionStore;
 import dev.the2davi.lab.security.util.JwtUtil;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/auth")
@@ -23,12 +27,14 @@ public class AuthController {
 
 	private final JwtUtil jwtUtil;
 	private final RestClient authRestClient;
+	private final SecuritySessionStore sessionStore;
 	
-	public AuthController(JwtUtil jwtUtil, @Value("${proxmox.api.url}") String apiUrl) {
+	public AuthController(JwtUtil jwtUtil, @Value("${proxmox.api.url}") String apiUrl, SecuritySessionStore sessionStore) {
 		this.jwtUtil = jwtUtil;
 		this.authRestClient = RestClient.builder()
 				.baseUrl(apiUrl)
 				.build();
+		this.sessionStore = sessionStore;
 	}
 	
 	@PostMapping("/login")
@@ -53,17 +59,36 @@ public class AuthController {
 			
 			ProxmoxTicketResponse ticketData = pveRes.data();
 			
-			String jwtToken = jwtUtil.createToken(
-				ticketData.username()
-				, ticketData.ticket()
-				, ticketData.CSRFPreventionToken()
-			);
+//			String jwtToken = jwtUtil.createToken(
+//				ticketData.username()
+//				, ticketData.ticket()
+//				, ticketData.CSRFPreventionToken()
+//			);
 			
-			return ResponseEntity.ok(Map.of("token", jwtToken));
+			SecuritySession session = new SecuritySession(
+					ticketData.username()
+					, ticketData.ticket()
+					, ticketData.CSRFPreventionToken()
+					, java.time.Instant.now()
+			);
+			String sid = sessionStore.create(session);
+			
+			String jwt = jwtUtil.createToken(ticketData.username(), sid);
+			return ResponseEntity.ok(Map.of("token", jwt));
 			
 		} catch(Exception e) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					.body(Map.of("message", "Proxmox 계정 정보 불일치."));
 		}
+	}
+	
+	@PostMapping("/logout")
+	public ResponseEntity<Void> logout(HttpServletRequest request) {
+		String jwt = jwtUtil.parseJwt(request);
+		Claims claims = (jwt != null) ? jwtUtil.getClaims(jwt) : null;
+		if(claims != null) {
+			sessionStore.remove(claims.get("sid", String.class));
+		}
+		return ResponseEntity.noContent().build();
 	}
 }

@@ -11,8 +11,7 @@ const app = createApp({
 		const targetUpid = ref('');
 		const jwtToken = ref('');
 		const loginForm = ref({
-			username: ''
-			, password: ''
+			username: '', password: ''
 		});
 		//let taskPollingTimer = null;
 		let logPollingTimer = null;
@@ -47,7 +46,7 @@ const app = createApp({
 
 		/* Login */
 		const handleLogin = async () => {
-			if(!loginForm.value.username || !loginForm.value.passworrd) {
+			if(!loginForm.value.username || !loginForm.value.password) {
 				alert("아이디와 비번을 입력해라.");
 				return;
 			};
@@ -300,6 +299,7 @@ const app = createApp({
 			closeStorageModal,
 			onTypeChange,
 			submitStorage,
+			jwtToken,
 			loginForm,
 			handleLogin,
 			handleLogout
