@@ -62,4 +62,18 @@ public class JwtUtil {
 				.signWith(secretKey)
 				.compact();
 	}
+	
+	//JWT Token 발급
+	public String createToken(String username, String ticket, String CSRFPreventionToken) {
+		return Jwts.builder()
+				.claims()
+					.subject(username)
+					.issuedAt(new java.util.Date())
+					.add("pve_ticket", ticket)
+					.add("pve_csrf", CSRFPreventionToken)
+					.and()
+				.expiration(new java.util.Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
+				.signWith(secretKey)
+				.compact();
+	}
 }

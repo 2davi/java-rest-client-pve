@@ -10,6 +10,10 @@ const app = createApp({
 		const targetNode = ref('lab');
 		const targetUpid = ref('');
 		const jwtToken = ref('');
+		const loginForm = ref({
+			username: ''
+			, password: ''
+		});
 		//let taskPollingTimer = null;
 		let logPollingTimer = null;
 		
@@ -39,7 +43,40 @@ const app = createApp({
 			if(vmPollingTimer) clearInterval(vmPollingTimer);
 		};
 		
+
+
+		/* Login */
+		const handleLogin = async () => {
+			if(!loginForm.value.username || !loginForm.value.passworrd) {
+				alert("아이디와 비번을 입력해라.");
+				return;
+			};
+			
+			try{
+				const response = await axios.post("/auth/login", loginForm.value);
+				
+				//토큰 저장
+				jwtToken.value = response.data.token;
+				console.debug("로그인 성공 ^0^");
+				
+				//로그인 성공할 시에 백엔드 데이터 동시다발 호출
+				await fetchTasks();
+				await fetchVmList();
+				startWatchingVmList();
+			} catch(error) {
+				console.error("로그인 실패^~^;", error);
+				alert("인증 실패!");
+			}
+		};
+		const handleLogout = () => {
+			jwtToken.value = '';
+			loginForm.value.password = '';
+			stopWatchingLogs();
+			stopWatchingVmList();
+			alert("로그아웃~");
+		};
 		
+
 		/* VM List 정렬 테이블 */
 		const sortKey = ref('vmid');
 		const sortOrder = ref(1);
@@ -229,12 +266,9 @@ const app = createApp({
 		};
 		
 		
+		
 		onMounted(async () => {
-			await fetchToken();
-			await startWatchingTasks();
-			
-			await fetchVmList();
-			startWatchingVmList();
+			console.debug("로그인 전...");
 		});
 		
 		onUnmounted(() => {
@@ -265,7 +299,10 @@ const app = createApp({
 			openStorageModal,
 			closeStorageModal,
 			onTypeChange,
-			submitStorage
+			submitStorage,
+			loginForm,
+			handleLogin,
+			handleLogout
 		};
 	}
 });

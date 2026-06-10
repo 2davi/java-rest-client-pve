@@ -36,7 +36,7 @@ public class AuthenticationEntryPoint implements org.springframework.security.we
 		errorDetails.put("path", request.getRequestURI());
 		
 		ObjectMapper objectMapper = new ObjectMapper();
-		response.getWriter().write(objectMapper.writeValueAsString(objectMapper));
+		response.getWriter().write(objectMapper.writeValueAsString(errorDetails));
 	}
 
 }

@@ -10,143 +10,165 @@
 	<link rel="icon" href="data:;base64,iVBORw0KGgo=">
 </head>
 <body>
-	<div id="app" class="dashboard-container">
-		<div class="panel">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
-                <h3 style="margin: 0;">Virtual Machines [Node: {{ targetNode }}]</h3>
-				<button class="btn" style="background: #e67e22; margin-right: 15px;" @click="openStorageModal">
-                    💾 스토리지 추가
-                </button>
-                <div @click="sortBy('uptime')" class="sortable" style="font-size: 12px; color: #aaa; text-decoration: underline;">
-                    <span v-if="sortKey === 'uptime'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
-                    가동시간 정렬
-                </div>
+	<div id="app">
+		<div v-if="!jwtToken" class="panel" style="width: 350px; margin: 100px, auto;">
+			<h3 style="color: #4CAF50; text-align: center; margin-bottom: 20px;">CMP SYSTEM LOGIN</h3>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" v-model="loginForm.username" placeholder="아이디를 입력하세요" @keyup.enter="handleLogin" />
             </div>
-
-            <table class="vm-table">
-                <thead>
-                    <tr>
-                        <th @click="sortBy('vmid')" class="sortable">
-                            VMID <span v-if="sortKey === 'vmid'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
-                        </th>
-                        <th @click="sortBy('name')" class="sortable">
-                            이름 <span v-if="sortKey === 'name'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
-                        </th>
-                        <th @click="sortBy('status')" class="sortable">
-                            상태 <span v-if="sortKey === 'status'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
-                        </th>
-						<th @click="sortBy('uptime')" class="sortable">
-                            가동시간 <span v-if="sortKey === 'uptime'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
-                        </th>
-                        <th>액션</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="vm in sortedVmList" :key="vm.vmid">
-                        <td>{{ vm.vmid }}</td>
-                        <td>{{ vm.name }}</td>
-                        <td>
-							<span :key="'status-'+vm.status" class="flash-text">
-	                            <span :class="['badge', vm.status === 'running' ? 'on' : 'off']">
-	                                {{ vm.status }}
-	                            </span>
-							</span>
-                        </td>
-						<td>
-							<span :key="'uptime-'+vm.uptime" class="flash-text" style="font-family: monospace; font-size: 13px;">
-								{{ formatUptime(vm.uptime) }}
-							</span>
-						</td>
-                        <td>
-                            <button class="btn btn-start" @click="controlVm(vm.vmid, 'start')" :disabled="vm.status === 'running'">Start</button>
-                            <button class="btn btn-stop" @click="controlVm(vm.vmid, 'shutdown')" :disabled="vm.status !== 'running'">Shutdown</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="panel terminal-box">
-            <h3>Task Logs ({{ targetUpid || '' }})</h3>
-            
-            <div class="controls" style="margin-bottom: 15px; display: flex; gap: 10px;">
-                <select v-model="targetUpid" @change="onTaskSelect" style="flex-grow: 1; padding: 5px;">
-                    <option disabled value="">조회할 과거 작업을 선택하세요</option>
-                    <option v-for="task in taskList" :key="task.upid" :value="task.upid">
-                        {{ task.displayTitle }} ({{ formatTime(task.timestamp) }})
-                    </option>
-                </select>
-                <button class="btn btn-start" @click="startWatchingLogs" :disabled="isPolling || !targetUpid">로그 추적 시작</button>
-                <button class="btn btn-stop" @click="stopWatchingLogs" :disabled="!isPolling">추적 중지</button>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" v-model="loginForm.password" placeholder="비밀번호를 입력하세요" @keyup.enter="handleLogin" />
             </div>
-
-            <div class="log-content">
-                <p v-for="log in taskLogs" :key="log.n">> {{ log.t }}</p>
-                <p v-if="isPolling" class="blinking-cursor">_</p>
-            </div>
-        </div>
+            <button class="btn btn-start" @click="handleLogin" style="width: 100%; margin-top: 10px; padding: 12px;">
+                로그인
+            </button>
+		</div>
 		
-		<div v-if="isStorageModalOpen" class="modal-overlay" @click.self="closeStorageModal">
-            <div class="modal-content">
-                <h3>클러스터 스토리지 마운트</h3>
-                
-                <div class="form-group">
-                    <label>스토리지 타입</label>
-                    <select v-model="storageForm.type" @change="onTypeChange">
-                        <option value="nfs">NFS (네트워크 파일 시스템)</option>
-                        <option value="lvmthin">LVM-Thin (로컬 씬 프로비저닝)</option>
-                        <option value="rbd">Ceph RBD (분산 블록 스토리지)</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>스토리지 이름 (ID)</label>
-                    <input type="text" v-model="storageForm.storage" placeholder="예: my-storage" />
-                </div>
-
-                <template v-if="storageForm.type === 'nfs'">
-                    <div class="form-group">
-                        <label>NFS 서버 IP</label>
-                        <input type="text" v-model="storageForm.config.server" placeholder="예: 192.168.10.50" />
-                    </div>
-                    <div class="form-group">
-                        <label>Export 경로</label>
-                        <input type="text" v-model="storageForm.config.export" placeholder="예: /volume1/nfs" />
-                    </div>
-                </template>
-
-                <template v-if="storageForm.type === 'lvmthin'">
-                    <div class="form-group">
-                        <label>볼륨 그룹 (Volume Group)</label>
-                        <input type="text" v-model="storageForm.config.vgname" placeholder="예: pve" />
-                    </div>
-                    <div class="form-group">
-                        <label>씬 풀 (Thin Pool)</label>
-                        <input type="text" v-model="storageForm.config.thinpool" placeholder="예: data" />
-                    </div>
-                </template>
-                
-                <template v-if="storageForm.type === 'rbd'">
-                    <div class="form-group">
-                        <label>Ceph Pool 이름</label>
-                        <input type="text" v-model="storageForm.config.pool" placeholder="예: ceph-data" />
-                    </div>
-                </template>
-
-                <div class="form-group">
-                    <label>콘텐츠 용도</label>
-                    <select v-model="storageForm.content">
-                        <option value="images,iso,backup">VM 디스크, ISO, 백업</option>
-                        <option value="images">VM 디스크 전용</option>
-                    </select>
-                </div>
-
-                <div class="modal-actions">
-                    <button class="btn btn-start" @click="submitStorage">마운트 실행</button>
-                    <button class="btn btn-stop" @click="closeStorageModal">취소</button>
-                </div>
+		<div v-else  class="dashboard-container">
+			<div style="display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px;">
+                <span style="color: #00ff00; font-weight: bold;">🔑 인증됨: {{ loginForm.username }} 님</span>
+                <button class="btn btn-stop" @click="handleLogout" style="padding: 5px 10px; font-size: 12px;">로그아웃</button>
             </div>
-        </div>
+			
+			<div class="panel">
+	            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
+	                <h3 style="margin: 0;">Virtual Machines [Node: {{ targetNode }}]</h3>
+					<button class="btn" style="background: #e67e22; margin-right: 15px;" @click="openStorageModal">
+	                    💾 스토리지 추가
+	                </button>
+	                <div @click="sortBy('uptime')" class="sortable" style="font-size: 12px; color: #aaa; text-decoration: underline;">
+	                    <span v-if="sortKey === 'uptime'">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+	                    가동시간 정렬
+	                </div>
+	            </div>
+	
+	            <table class="vm-table">
+	                <thead>
+	                    <tr>
+	                        <th @click="sortBy('vmid')" class="sortable">
+	                            VMID <span v-if="sortKey === 'vmid'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+	                        </th>
+	                        <th @click="sortBy('name')" class="sortable">
+	                            이름 <span v-if="sortKey === 'name'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+	                        </th>
+	                        <th @click="sortBy('status')" class="sortable">
+	                            상태 <span v-if="sortKey === 'status'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+	                        </th>
+							<th @click="sortBy('uptime')" class="sortable">
+	                            가동시간 <span v-if="sortKey === 'uptime'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+	                        </th>
+	                        <th>액션</th>
+	                    </tr>
+	                </thead>
+	                <tbody>
+	                    <tr v-for="vm in sortedVmList" :key="vm.vmid">
+	                        <td>{{ vm.vmid }}</td>
+	                        <td>{{ vm.name }}</td>
+	                        <td>
+								<span :key="'status-'+vm.status" class="flash-text">
+		                            <span :class="['badge', vm.status === 'running' ? 'on' : 'off']">
+		                                {{ vm.status }}
+		                            </span>
+								</span>
+	                        </td>
+							<td>
+								<span :key="'uptime-'+vm.uptime" class="flash-text" style="font-family: monospace; font-size: 13px;">
+									{{ formatUptime(vm.uptime) }}
+								</span>
+							</td>
+	                        <td>
+	                            <button class="btn btn-start" @click="controlVm(vm.vmid, 'start')" :disabled="vm.status === 'running'">Start</button>
+	                            <button class="btn btn-stop" @click="controlVm(vm.vmid, 'shutdown')" :disabled="vm.status !== 'running'">Shutdown</button>
+	                        </td>
+	                    </tr>
+	                </tbody>
+	            </table>
+	        </div>
+	
+	        <div class="panel terminal-box">
+	            <h3>Task Logs ({{ targetUpid || '' }})</h3>
+	            
+	            <div class="controls" style="margin-bottom: 15px; display: flex; gap: 10px;">
+	                <select v-model="targetUpid" @change="onTaskSelect" style="flex-grow: 1; padding: 5px;">
+	                    <option disabled value="">조회할 과거 작업을 선택하세요</option>
+	                    <option v-for="task in taskList" :key="task.upid" :value="task.upid">
+	                        {{ task.displayTitle }} ({{ formatTime(task.timestamp) }})
+	                    </option>
+	                </select>
+	                <button class="btn btn-start" @click="startWatchingLogs" :disabled="isPolling || !targetUpid">로그 추적 시작</button>
+	                <button class="btn btn-stop" @click="stopWatchingLogs" :disabled="!isPolling">추적 중지</button>
+	            </div>
+	
+	            <div class="log-content">
+	                <p v-for="log in taskLogs" :key="log.n">> {{ log.t }}</p>
+	                <p v-if="isPolling" class="blinking-cursor">_</p>
+	            </div>
+	        </div>
+			
+			<div v-if="isStorageModalOpen" class="modal-overlay" @click.self="closeStorageModal">
+	            <div class="modal-content">
+	                <h3>클러스터 스토리지 마운트</h3>
+	                
+	                <div class="form-group">
+	                    <label>스토리지 타입</label>
+	                    <select v-model="storageForm.type" @change="onTypeChange">
+	                        <option value="nfs">NFS (네트워크 파일 시스템)</option>
+	                        <option value="lvmthin">LVM-Thin (로컬 씬 프로비저닝)</option>
+	                        <option value="rbd">Ceph RBD (분산 블록 스토리지)</option>
+	                    </select>
+	                </div>
+	
+	                <div class="form-group">
+	                    <label>스토리지 이름 (ID)</label>
+	                    <input type="text" v-model="storageForm.storage" placeholder="예: my-storage" />
+	                </div>
+	
+	                <template v-if="storageForm.type === 'nfs'">
+	                    <div class="form-group">
+	                        <label>NFS 서버 IP</label>
+	                        <input type="text" v-model="storageForm.config.server" placeholder="예: 192.168.10.50" />
+	                    </div>
+	                    <div class="form-group">
+	                        <label>Export 경로</label>
+	                        <input type="text" v-model="storageForm.config.export" placeholder="예: /volume1/nfs" />
+	                    </div>
+	                </template>
+	
+	                <template v-if="storageForm.type === 'lvmthin'">
+	                    <div class="form-group">
+	                        <label>볼륨 그룹 (Volume Group)</label>
+	                        <input type="text" v-model="storageForm.config.vgname" placeholder="예: pve" />
+	                    </div>
+	                    <div class="form-group">
+	                        <label>씬 풀 (Thin Pool)</label>
+	                        <input type="text" v-model="storageForm.config.thinpool" placeholder="예: data" />
+	                    </div>
+	                </template>
+	                
+	                <template v-if="storageForm.type === 'rbd'">
+	                    <div class="form-group">
+	                        <label>Ceph Pool 이름</label>
+	                        <input type="text" v-model="storageForm.config.pool" placeholder="예: ceph-data" />
+	                    </div>
+	                </template>
+	
+	                <div class="form-group">
+	                    <label>콘텐츠 용도</label>
+	                    <select v-model="storageForm.content">
+	                        <option value="images,iso,backup">VM 디스크, ISO, 백업</option>
+	                        <option value="images">VM 디스크 전용</option>
+	                    </select>
+	                </div>
+	
+	                <div class="modal-actions">
+	                    <button class="btn btn-start" @click="submitStorage">마운트 실행</button>
+	                    <button class="btn btn-stop" @click="closeStorageModal">취소</button>
+	                </div>
+	            </div>
+	        </div>
+		</div>
     </div>
 
     <script src="/js/app.js"></script>
