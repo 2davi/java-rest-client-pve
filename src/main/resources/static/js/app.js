@@ -7,9 +7,10 @@ const app = createApp({
 		const taskList = ref([]);
 		const taskLogs = ref([]);
 		const isPolling = ref(false);
-		const targetNode = ref('lab');
+		const targetNode = ref('pve');
 		const targetUpid = ref('');
 		const jwtToken = ref('');
+		const TOKEN_KEY = 'cmp_jwt';
 		const loginForm = ref({
 			username: '', password: ''
 		});
@@ -44,7 +45,15 @@ const app = createApp({
 		
 
 
-		/* Login */
+		/* Auth */
+		const clearSession = () => {
+			sessionStorage.removeItem(TOKEN_KEY);
+			jwtToken.value = '';
+			//런타임(handleLogout)에서만 호출되니, 뒤에 선언된 함수 참조해도 문제 없음.
+			stopWatchingLogs();
+			stopWatchingVmList();
+		};
+		
 		const handleLogin = async () => {
 			if(!loginForm.value.username || !loginForm.value.password) {
 				alert("아이디와 비번을 입력해라.");
@@ -53,25 +62,32 @@ const app = createApp({
 			
 			try{
 				const response = await axios.post("/auth/login", loginForm.value);
-				
-				//토큰 저장
-				jwtToken.value = response.data.token;
-				console.debug("로그인 성공 ^0^");
+				const token = response.data.token;
+				jwtToken.value = token;
+				sessionStorage.setItem(TOKEN_KEY, token);
 				
 				//로그인 성공할 시에 백엔드 데이터 동시다발 호출
 				await fetchTasks();
 				await fetchVmList();
 				startWatchingVmList();
 			} catch(error) {
-				console.error("로그인 실패^ㅂ^;", error);
-				alert("인증 실패!");
+				const pd = error.response?.data;
+				alert(pd?.detail ?? "인증 실패 ^ㅂ^");
+				console.error("로그인 실패", pd ?? error);
+				//pd?.code로 응답 상태코드 값으로 분기 처리 가능
 			}
 		};
-		const handleLogout = () => {
-			jwtToken.value = '';
+		const handleLogout = async () => {
+			try{
+				await axios.post('/auth/logout', {}, {
+					headers: { Authorization: `Bearer ${jwtToken.value}` }
+				});
+			} catch(error) {
+				console.warn("서버 로그아웃 실패(무시 가능):", error);
+			}
+			
+			clearSession();
 			loginForm.value.password = '';
-			stopWatchingLogs();
-			stopWatchingVmList();
 			alert("로그아웃~");
 		};
 		
@@ -112,14 +128,25 @@ const app = createApp({
 			//	'Authorization' : `Bearer ${jwtToken}`
 			//}
 		});
-		//2) 인터셉터 장착(통신이 나갈 때마다 토큰을 동적으로 검사해서 꽂아줌)
+		//2) 요청 인터셉터 장착(통신이 나갈 때마다 토큰을 동적으로 검사해서 꽂아줌)
 		api.interceptors.request.use(config => {
 			if(jwtToken.value) {
 				config.headers.Authorization = `Bearer ${jwtToken.value}`;
 			}
 			return config;
 		});
-		//3) 토큰 자동 발급 함수
+		//3) 응답 인터셉터 장착(401 응답 일괄 처리)
+		api.interceptors.response.use(
+			response => response
+			, error => {
+				if(error.response?.status == 401) {
+					clearSession();
+					console.warn("로그인 세션 만료");
+				}
+				return Promise.reject(error);
+			}
+		);
+		//4) 토큰 자동 발급 함수
 		const fetchToken = async () => {
 			try {
 				const response = await axios.get('/api/public/token');
@@ -267,7 +294,17 @@ const app = createApp({
 		
 		
 		onMounted(async () => {
-			console.debug("로그인 전...");
+			/* sessionStorage 기반으로 jwtToken 복원 */
+			const savedToken = sessionStorage.getItem(TOKEN_KEY);
+			if(savedToken) {
+				jwtToken.value = savedToken;
+				
+				await fetchTasks();
+				await fetchVmList();
+				startWatchingVmList();
+			} else {
+				console.debug("저장된 세션 없음 - 로그인 화면");
+			}
 		});
 		
 		onUnmounted(() => {
