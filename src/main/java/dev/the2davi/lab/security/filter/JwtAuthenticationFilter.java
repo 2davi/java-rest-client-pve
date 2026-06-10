@@ -1,15 +1,15 @@
 package dev.the2davi.lab.security.filter;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import dev.the2davi.lab.security.util.JwtUtil;
-import io.jsonwebtoken.lang.Collections;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,14 +26,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
 		try {
-			String jwt = parseJwt(request);
-			if(jwt != null && jwtUtil.validateToken(jwt)) {
+			String jwt = jwtUtil.parseJwt(request);
+			Claims claims = (jwt != null) ? jwtUtil.getClaims(jwt) : null;
 
+			//* if(jwt != null && jwtUtil.validateToken(jwt)) {
+			if(claims != null) {
 				//토큰이 유효성 검증을 통과한 이후.
-				String userId = jwtUtil.getUserIdFromToken(jwt);
+				//* String userId = jwtUtil.getUserIdFromToken(jwt);
+				String username = claims.getSubject();
+				String pveTicket = claims.get("pve_ticket", String.class);
+				String pveCsrf = claims.get("pve_csrf", String.class);
+				
 				UsernamePasswordAuthenticationToken authentication = 
-						new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
-				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+						//* new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+						new UsernamePasswordAuthenticationToken(username, null, List.of());
+				
+				//** authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				Map<String, String> pveDetails = Map.of(
+					"pve_ticket", (pveTicket != null) ? pveTicket : "",
+					"pve_csrf", (pveCsrf != null) ? pveCsrf : ""
+				);
+				authentication.setDetails(pveDetails);
+				
 				SecurityContextHolder.getContext().setAuthentication(authentication);
 			}
 		} catch(Exception e) {
@@ -42,11 +56,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		filterChain.doFilter(request, response);
 	}
 
-	private String parseJwt(HttpServletRequest request) {
-		String headerAuth = request.getHeader("Authorization");
-		if(StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-			return headerAuth.substring(7);
-		}
-		return null;
-	}
+
 }
