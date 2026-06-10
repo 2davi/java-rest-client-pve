@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +19,7 @@ import dev.the2davi.lab.api.dto.ProxmoxTicketResponse;
 import dev.the2davi.lab.security.session.SecuritySession;
 import dev.the2davi.lab.security.session.SecuritySessionStore;
 import dev.the2davi.lab.security.util.JwtUtil;
+import dev.the2davi.lab.util.TypeUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -29,9 +31,14 @@ public class AuthController {
 	private final RestClient authRestClient;
 	private final SecuritySessionStore sessionStore;
 	
-	public AuthController(JwtUtil jwtUtil, @Value("${proxmox.api.url}") String apiUrl, SecuritySessionStore sessionStore) {
+	public AuthController(
+			JwtUtil jwtUtil
+			, @Value("${proxmox.api.url}") String apiUrl
+			, SecuritySessionStore sessionStore
+			, ClientHttpRequestFactory pveRequestFactory) {
 		this.jwtUtil = jwtUtil;
 		this.authRestClient = RestClient.builder()
+				.requestFactory(pveRequestFactory)
 				.baseUrl(apiUrl)
 				.build();
 		this.sessionStore = sessionStore;
@@ -41,7 +48,7 @@ public class AuthController {
 	public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequestDto dto) {
 		
 		try{
-			String formData = String.format("username=%s&password=%s", dto.username(), dto.password());
+			String formData = String.format("username=%s&password=%s", TypeUtil.encodeUTF_8(dto.username()), TypeUtil.encodeUTF_8(dto.password()));
 			
 			ParameterizedTypeReference<ProxmoxResponse<ProxmoxTicketResponse>> responseType =
 					new ParameterizedTypeReference<>() {};

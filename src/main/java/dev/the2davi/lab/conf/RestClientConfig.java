@@ -15,6 +15,7 @@ import javax.net.ssl.X509TrustManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -30,41 +31,7 @@ public class RestClientConfig {
 	@Bean
 	RestClient pveRestClient(
 			@Value("${proxmox.api.url}") String apiUrl
-			//* , @Value("${proxmox.api.token}") String apiToken
-			, @Value("${proxmox.timeout.connect}") Integer connectTimeout
-			, @Value("${proxmox.timeout.read}") Integer readTimeout) throws Exception {
-		//인증서 검문소를 하이패스로 만든다.
-		TrustManager[] trustAllCerts = new TrustManager[] {
-			new X509TrustManager() {
-				@Override public X509Certificate[] getAcceptedIssuers() { return null; }
-				@Override public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
-				@Override public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
-			}
-		};
-		
-		//SSLContext 초기화
-		SSLContext sslContext = SSLContext.getInstance("TLS");
-		sslContext.init(null, trustAllCerts, new SecureRandom());
-		
-		//+hostname이 다르든 말든
-//		@SuppressWarnings("unused")
-//		HostnameVerifier allHostValid = (_hostname, _session) -> true;
-		System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
-		//IPv6 헛발질 방지
-		System.setProperty("java.net.preferIPv4Stack", "true");
-		
-		HttpClient httpClient = HttpClient.newBuilder()
-				.sslContext(sslContext)
-				.connectTimeout(Duration.ofSeconds(connectTimeout))
-				.version(HttpClient.Version.HTTP_1_1)
-				//* .followRedirects(HttpClient.Redirect.NORMAL)
-				//System Proxy 사용 비활성
-				.proxy(HttpClient.Builder.NO_PROXY)
-				//JAVA 21+: API 요청마다 가상 스레드를 사용한다.
-				.executor(Executors.newVirtualThreadPerTaskExecutor())
-				.build();
-		JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-		requestFactory.setReadTimeout(Duration.ofSeconds(readTimeout));
+			, ClientHttpRequestFactory pveRequestFactory) throws Exception {
 		
 		//* 2026-06-10; 동적 인증 인터셉터 정의
 		//return문에서 `defaultHeader`에 apiToken을 동적으로 가져와 박아놓도록.
@@ -91,10 +58,39 @@ public class RestClientConfig {
 		
 		//완성된 RestClient를 Bean으로 등록
 		return RestClient.builder()
-					.requestFactory(requestFactory)
+					.requestFactory(pveRequestFactory)
 					.baseUrl(apiUrl)
-					//* .defaultHeader("Authorization", apiToken)
 					.requestInterceptor(dynamicAuthInterceptor)
 					.build();
+	}
+	
+	@Bean
+	ClientHttpRequestFactory pveRequestFactory(
+			@Value("${proxmox.timeout.connect}") Integer connectTimeout
+			, @Value("${proxmox.timeout.read}") Integer readTimeout) throws Exception {
+		
+		TrustManager[] trustAllCerts = {
+				new X509TrustManager() {
+					@Override public X509Certificate[] getAcceptedIssuers() { return null; }
+					@Override public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
+					@Override public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
+				}
+		};
+		
+		SSLContext sslContext = SSLContext.getInstance("TLS");
+		sslContext.init(null, trustAllCerts, new SecureRandom());
+		System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
+		System.setProperty("java.net.preferIPv4Stack", "true");
+		
+		HttpClient httpClient = HttpClient.newBuilder()
+				.sslContext(sslContext)
+				.connectTimeout(Duration.ofSeconds(connectTimeout))
+				.version(HttpClient.Version.HTTP_1_1)
+				.proxy(HttpClient.Builder.NO_PROXY)
+				.executor(Executors.newVirtualThreadPerTaskExecutor())
+				.build();
+		JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+		factory.setReadTimeout(Duration.ofSeconds(readTimeout));
+		return factory;
 	}
 }

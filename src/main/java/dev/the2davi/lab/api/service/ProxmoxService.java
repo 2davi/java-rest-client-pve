@@ -1,7 +1,5 @@
 package dev.the2davi.lab.api.service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +20,7 @@ import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
 import dev.the2davi.lab.api.dto.ProxmoxVmDto;
 import dev.the2davi.lab.util.CmpUtils;
+import dev.the2davi.lab.util.TypeUtil;
 
 @Service
 public class ProxmoxService {
@@ -179,9 +178,9 @@ public class ProxmoxService {
 		
 		if(dto.config() != null) {
 			dto.config().forEach((k,v) -> {
-				if(v != null && !v.toString().isEmpty()) {
-					String encodedV = URLEncoder.encode(v.toString(), StandardCharsets.UTF_8);
-					formData.append("&").append(k).append("=").append(encodedV);
+				String ev = TypeUtil.encodeUTF_8(v);
+				if(ev != null) {
+					formData.append("&").append(k).append("=").append(ev);
 				}
 			});
 		}

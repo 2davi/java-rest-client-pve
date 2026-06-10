@@ -63,7 +63,7 @@ const app = createApp({
 				await fetchVmList();
 				startWatchingVmList();
 			} catch(error) {
-				console.error("로그인 실패^~^;", error);
+				console.error("로그인 실패^ㅂ^;", error);
 				alert("인증 실패!");
 			}
 		};
