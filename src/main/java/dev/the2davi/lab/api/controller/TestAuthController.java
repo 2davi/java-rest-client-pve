@@ -3,11 +3,12 @@ package dev.the2davi.lab.api.controller;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.RestController;
 
-import dev.the2davi.lab.security.util.JwtUtil;
+import dev.the2davi.lab.cmmn.security.util.JwtUtil;
 
 @RestController @Profile("local")
 public class TestAuthController {
 
+	@SuppressWarnings("unused")
 	private final JwtUtil jwtUtil;
 	public TestAuthController(JwtUtil jwtUtil) {
 		this.jwtUtil = jwtUtil;

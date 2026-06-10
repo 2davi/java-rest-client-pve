@@ -1,4 +1,4 @@
-package dev.the2davi.lab.security.util;
+package dev.the2davi.lab.cmmn.security.util;
 
 import java.nio.charset.StandardCharsets;
 

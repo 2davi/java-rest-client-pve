@@ -1,4 +1,4 @@
-package dev.the2davi.lab.conf;
+package dev.the2davi.lab.cmmn.conf;
 
 import java.net.http.HttpClient;
 import java.security.SecureRandom;

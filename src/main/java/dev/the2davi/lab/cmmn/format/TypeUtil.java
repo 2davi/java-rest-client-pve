@@ -1,4 +1,4 @@
-package dev.the2davi.lab.util;
+package dev.the2davi.lab.cmmn.format;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

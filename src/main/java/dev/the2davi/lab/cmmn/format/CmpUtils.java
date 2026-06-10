@@ -1,7 +1,9 @@
-package dev.the2davi.lab.util;
+package dev.the2davi.lab.cmmn.format;
 
 import dev.the2davi.lab.api.dto.CmpTaskHistoryDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskDto;
+import dev.the2davi.lab.cmmn.type.ResourceType;
+import dev.the2davi.lab.cmmn.type.TaskAction;
 
 public class CmpUtils {
 

@@ -1,18 +1,17 @@
-package dev.the2davi.lab.conf;
+package dev.the2davi.lab.cmmn.conf;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import dev.the2davi.lab.security.filter.JwtAuthenticationFilter;
-import dev.the2davi.lab.security.handler.AuthenticationEntryPoint;
-import dev.the2davi.lab.security.session.SecuritySessionStore;
-import dev.the2davi.lab.security.util.JwtUtil;
+import dev.the2davi.lab.cmmn.security.filter.JwtAuthenticationFilter;
+import dev.the2davi.lab.cmmn.security.handler.AuthenticationEntryPoint;
+import dev.the2davi.lab.cmmn.security.session.SecuritySessionStore;
+import dev.the2davi.lab.cmmn.security.util.JwtUtil;
 
 @Configuration @EnableWebSecurity
 public class SecurityConfig {
@@ -45,7 +44,7 @@ public class SecurityConfig {
 			//경로별 권한 설정
 			.authorizeHttpRequests(auth -> auth
 					//정적 파일의 404 에러는 JWT 토큰이 없기 때문에, Security에서 401 권한없음 에러로 덮어씌울 수 있다. /error도 .permitAll()에 포함시켜서 해결.
-					//* .requestMatchers("/", "/index.html", "/css/**", "/js/**" , "/favicon.ico", "/error").permitAll()
+					.requestMatchers("/", "/index.html", "/css/**", "/js/**" , "/favicon.ico", "/error").permitAll()
 					.requestMatchers("/api/public/**", "/auth/**").permitAll()
 					.requestMatchers("/api/proxmox/**").authenticated()
 					.anyRequest().authenticated()
@@ -56,15 +55,16 @@ public class SecurityConfig {
 		return http.build();
 	}
 	
-	@Bean
-	WebSecurityCustomizer webSecurityCustomizer() {
-		//정적 파일들은 permitAll()로 막기보다, 아예 시큐리티 필터 자체를 통째로 건너뛰게 최전선에서 패스시키는 것이 훨씬 깔끔하고 성능상으로 이득이다.
-		return web -> web.ignoring().requestMatchers(
-				"/favicon.ico"
-				, "/css/**"
-				, "/js/**"
-				, "/index.html"
-				, "/"
-		);
-	}
+	// Spring Boot는 이렇게 Security를 ignore시키지 말고, HttpSecurity를 거쳐서 permitAll() 검문소를 지나가길 바라더라.
+//	@Bean
+//	WebSecurityCustomizer webSecurityCustomizer() {
+//		//정적 파일들은 permitAll()로 막기보다, 아예 시큐리티 필터 자체를 통째로 건너뛰게 최전선에서 패스시키는 것이 훨씬 깔끔하고 성능상으로 이득이다.
+//		return web -> web.ignoring().requestMatchers(
+//				"/favicon.ico"
+//				, "/css/**"
+//				, "/js/**"
+//				, "/index.html"
+//				, "/"
+//		);
+//	}
 }

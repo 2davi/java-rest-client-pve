@@ -19,8 +19,8 @@ import dev.the2davi.lab.api.dto.ProxmoxTaskDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
 import dev.the2davi.lab.api.dto.ProxmoxVmDto;
-import dev.the2davi.lab.util.CmpUtils;
-import dev.the2davi.lab.util.TypeUtil;
+import dev.the2davi.lab.cmmn.format.CmpUtils;
+import dev.the2davi.lab.cmmn.format.TypeUtil;
 
 @Service
 public class ProxmoxService {

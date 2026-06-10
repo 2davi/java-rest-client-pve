@@ -1,4 +1,4 @@
-package dev.the2davi.lab.util;
+package dev.the2davi.lab.cmmn.type;
 
 public enum ResourceType {
 	VM("qm", "VM")

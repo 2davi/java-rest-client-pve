@@ -1,4 +1,4 @@
-package dev.the2davi.lab.security.session;
+package dev.the2davi.lab.cmmn.security.session;
 
 import java.time.Duration;
 import java.time.Instant;

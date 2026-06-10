@@ -1,4 +1,4 @@
-package dev.the2davi.lab.security.filter;
+package dev.the2davi.lab.cmmn.security.filter;
 
 import java.io.IOException;
 import java.util.List;
@@ -8,9 +8,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import dev.the2davi.lab.security.session.SecuritySession;
-import dev.the2davi.lab.security.session.SecuritySessionStore;
-import dev.the2davi.lab.security.util.JwtUtil;
+import dev.the2davi.lab.cmmn.security.session.SecuritySession;
+import dev.the2davi.lab.cmmn.security.session.SecuritySessionStore;
+import dev.the2davi.lab.cmmn.security.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

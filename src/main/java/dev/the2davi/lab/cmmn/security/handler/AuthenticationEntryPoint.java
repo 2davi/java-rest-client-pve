@@ -1,4 +1,4 @@
-package dev.the2davi.lab.security.handler;
+package dev.the2davi.lab.cmmn.security.handler;
 
 import java.io.IOException;
 import java.util.HashMap;
