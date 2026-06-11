@@ -1,4 +1,4 @@
-package dev.the2davi.lab.api.dto;
+package dev.the2davi.lab.api.auth.dto;
 
 public record LoginRequestDto(
 	String username

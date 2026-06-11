@@ -1,4 +1,4 @@
-package dev.the2davi.lab.api.controller;
+package dev.the2davi.lab.api.auth.controller;
 
 import java.util.Map;
 
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
-import dev.the2davi.lab.api.dto.LoginRequestDto;
+import dev.the2davi.lab.api.auth.dto.LoginRequestDto;
 import dev.the2davi.lab.api.dto.ProxmoxResponse;
 import dev.the2davi.lab.api.dto.ProxmoxTicketResponse;
 import dev.the2davi.lab.cmmn.exception.error.auth.InvalidCredentialsException;

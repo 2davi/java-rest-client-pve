@@ -1,4 +1,4 @@
-package dev.the2davi.lab.api.dto;
+package dev.the2davi.lab.api.task.dto;
 
 public record ProxmoxTaskDto(
 		String upid				//작업 고유 ID
