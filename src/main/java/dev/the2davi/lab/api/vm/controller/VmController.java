@@ -17,6 +17,7 @@ import dev.the2davi.lab.api.vm.dto.ProxmoxVmDestroyDto;
 import dev.the2davi.lab.api.vm.dto.ProxmoxVmDto;
 import dev.the2davi.lab.api.vm.service.VmService;
 import dev.the2davi.lab.audit.service.AuditService;
+import dev.the2davi.lab.cmmn.type.TaskType;
 
 @RestController
 @RequestMapping("/api/proxmox")
@@ -30,10 +31,30 @@ public class VmController {
 	}
 	
 	/* VM List */
-	@Deprecated
 	@GetMapping("/nodes/{node}/qemu")
 	public ResponseEntity<List<ProxmoxVmDto>> getVmList(@PathVariable String node) {
-		return ResponseEntity.ok(service.getVmList(node));
+		//return ResponseEntity.ok(service.getVmList(node));
+		return ResponseEntity.ok(service.getVmList());
+	}
+	
+	/* VM Control */
+	@PostMapping("/nodes/{node}/qemu/{vmid}/status/{status}")
+	public ResponseEntity<Map<String, String>> controlVm(
+			@PathVariable String node
+			, @PathVariable int vmid
+			, @PathVariable String status) {
+		String rawResponse = service.controlVmStatus(node, vmid, status);
+		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
+		
+		String[] seg = upid.split(":");
+		String type = seg.length > 5 ? seg[5] : "";
+		
+		
+		audit.auditTaskStatus(node, upid);
+		return ResponseEntity.ok(Map.of(
+				"message", TaskType.from(type).getDisplayName(),
+				"upid", upid
+		));
 	}
 	
 	/* VM Clone */

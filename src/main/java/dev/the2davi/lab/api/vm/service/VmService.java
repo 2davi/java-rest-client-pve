@@ -24,6 +24,7 @@ public class VmService {
 	}
 	
 	/* VM List */
+	@Deprecated
 	public List<ProxmoxVmDto> getVmList(String node) {
 		String uri = String.format("/nodes/%s/qemu", node);
 		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxVmDto>>> responseType = new ParameterizedTypeReference<>() {};
@@ -37,8 +38,21 @@ public class VmService {
 				? response.data()
 				: Collections.emptyList();
 	}
+	public List<ProxmoxVmDto> getVmList() {
+		String uri = "/cluster/resources?type=vm";
+		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxVmDto>>> responseType = new ParameterizedTypeReference<>() {};
+		
+		ProxmoxResponse<List<ProxmoxVmDto>> response = restClient.get()
+				.uri(uri)
+				.retrieve()
+				.body(responseType);
+		
+		return response != null && response.data() != null
+				? response.data()
+				: Collections.emptyList();
+	}
 	
-	/* VM Status */
+	/* VM Control */
 	public String controlVmStatus(String node, int vmid, String action) {
 		String uri = String.format("/nodes/%s/qemu/%d/status/%s", node, vmid, action);
 		String response = restClient.post()
