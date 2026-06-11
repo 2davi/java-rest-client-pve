@@ -108,7 +108,7 @@ public class ProxmoxService {
 	}
 	
 	public List<ProxmoxTaskLogDto> getTaskLog(String node, String upid) {
-		String uri = String.format("/nodes/%s/tasks/%s/log", node, upid);
+		String uri = String.format("/nodes/%s/tasks/%s/log?limit=100000", node, upid);
 		
 		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxTaskLogDto>>> responseType = new ParameterizedTypeReference<>() {};
 		
