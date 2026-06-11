@@ -28,7 +28,7 @@
 		
 		<div v-else  class="dashboard-container">
 			<div style="display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px;">
-                <span style="color: #00ff00; font-weight: bold;">🔑 인증됨: {{ loginForm.username }} 님</span>
+                <span style="color: #00ff00; font-weight: bold;">🔑 인증됨: {{ userProfile.username }} 님</span>
                 <button class="btn btn-stop" @click="handleLogout" style="padding: 5px 10px; font-size: 12px;">로그아웃</button>
             </div>
 			
@@ -103,7 +103,7 @@
 	                <button class="btn btn-stop" @click="stopWatchingLogs" :disabled="!isPolling">추적 중지</button>
 	            </div>
 	
-	            <div class="log-content">
+	            <div class="log-content" ref="logContainer">
 	                <p v-for="log in taskLogs" :key="log.n">> {{ log.t }}</p>
 	                <p v-if="isPolling" class="blinking-cursor">_</p>
 	            </div>
