@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import dev.the2davi.lab.api.dto.ProxmoxResponse;
-import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
+import dev.the2davi.lab.api.task.dto.ProxmoxTaskStatusDto;
 import dev.the2davi.lab.audit.TaskOutcome;
 import dev.the2davi.lab.audit.recorder.TaskOutcomeRecorder;
 
