@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,6 +17,8 @@ import dev.the2davi.lab.api.dto.ProxmoxNodeDto;
 import dev.the2davi.lab.api.dto.ProxmoxStorageDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
+import dev.the2davi.lab.api.dto.ProxmoxVmCloneDto;
+import dev.the2davi.lab.api.dto.ProxmoxVmDestroyDto;
 import dev.the2davi.lab.api.dto.ProxmoxVmDto;
 import dev.the2davi.lab.api.service.ProxmoxService;
 
@@ -99,8 +102,57 @@ public class ProxmoxController {
 	}
 	
 	/* Storage */
+	@PostMapping("/storage")
 	public ResponseEntity<String> addStorage(@RequestBody ProxmoxStorageDto dto) {
 		pveService.createStorage(dto);
 		return ResponseEntity.ok(dto.type() + " 스토리지가 성공적으로 추가되었습니다.");
 	}
+	
+	/* VM Clone */
+	@PostMapping("/nodes/{node}/qemu/{vmid}/clone")
+	public ResponseEntity<Map<String, String>> cloneVm(
+			@PathVariable("node") String node
+			, @PathVariable("vmid") int vmid
+			, @RequestBody ProxmoxVmCloneDto dto) {
+		String rawResponse = pveService.cloneVm(node, vmid, dto);
+		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
+		
+		pveService.monitorTaskStatus(node, upid);
+		
+		return ResponseEntity.ok(Map.of(
+				"message", "VM 복제 작업 시작됨",
+				"upid", upid
+		));
+	}
+	
+	/* VM Destroy*/
+	@DeleteMapping("/nodes/{node}/qemu/{vmid}")
+	public ResponseEntity<Map<String, String>> deleteVm(
+			@PathVariable("node") String node
+			, @PathVariable("vmid") int vmid
+			, @RequestBody ProxmoxVmDestroyDto dto) {
+		String rawResponse = pveService.deleteVm(node, vmid, dto);
+		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
+		
+		pveService.monitorTaskStatus(node, upid);
+		
+		return ResponseEntity.ok(Map.of(
+				"message", "VM 삭제 작업 시작됨",
+				"upid", upid
+		));
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 import dev.the2davi.lab.api.dto.CmpTaskHistoryDto;
@@ -18,9 +19,12 @@ import dev.the2davi.lab.api.dto.ProxmoxStorageDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
+import dev.the2davi.lab.api.dto.ProxmoxVmCloneDto;
+import dev.the2davi.lab.api.dto.ProxmoxVmDestroyDto;
 import dev.the2davi.lab.api.dto.ProxmoxVmDto;
 import dev.the2davi.lab.cmmn.format.CmpUtils;
 import dev.the2davi.lab.cmmn.format.TypeUtil;
+import dev.the2davi.lab.cmmn.type.CloneType;
 
 @Service
 public class ProxmoxService {
@@ -192,4 +196,68 @@ public class ProxmoxService {
 				.retrieve()
 				.toBodilessEntity();
 	}
+	
+	/* VM Clone */
+	public String cloneVm(String node, int vmid, ProxmoxVmCloneDto dto) {
+		String uri = String.format("/nodes/%s/qemu/%d/clone", node, vmid);
+		StringBuilder formData = new StringBuilder();
+		
+		formData.append("newid=").append(dto.newVmid());
+		
+		if(StringUtils.hasText(dto.name())) {
+			formData.append("&name=").append(TypeUtil.encodeUTF_8(dto.name()));
+		}
+		
+		formData.append("&full=").append(CloneType.verify(dto.isFull()));
+		
+		return restClient.post()
+				.uri(uri)
+				.header("Content-Type", "application/x-www-form-urlencoded")
+				.body(formData.toString())
+				.retrieve()
+				.body(String.class); //Controller에서 UPID 파싱하기 위해 원시 타입 반환
+	}
+	
+	/* VM Destroy */
+	public String deleteVm(String node, int vmid, ProxmoxVmDestroyDto dto) {
+		// purge=1 & destroy-unreferenced-disk=1 :
+		String uri = String.format("/nodes/%s/qemu/%d?purge=%d&destroy-unreferenced-disks=%d", 
+				node, 
+				vmid, 
+				Boolean.TRUE.equals(dto.purge()) ? 1 : 0, 
+				Boolean.TRUE.equals(dto.destroyUnreferencedDisk()) ? 1 : 0
+		);
+		
+		return restClient.delete()
+				.uri(uri)
+				.retrieve()
+				.body(String.class);
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

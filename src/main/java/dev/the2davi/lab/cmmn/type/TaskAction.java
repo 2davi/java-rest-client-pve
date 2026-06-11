@@ -8,19 +8,19 @@ public enum TaskAction {
 	, UNKNOWN("unknown", "알 수 없음");
 	
 	private final String keyword;
-	private final String actionName;
+	private final String name;
 	
-	TaskAction(String keyword, String actionName) {
+	TaskAction(String keyword, String name) {
 		this.keyword = keyword;
-		this.actionName = actionName;
+		this.name = name;
 	}
 	
-	public String getActionName() {
-		return actionName;
+	public String getName() {
+		return name;
 	}
 	
 	public static TaskAction fromTaskType(String taskType) {
-		if(taskType == null) return UNKNOWN;
+		if(taskType == null) { return UNKNOWN; }
 		
 		for(TaskAction action : values()) {
 			if( !action.keyword.isEmpty()  && taskType.contains(action.keyword) ) {

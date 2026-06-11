@@ -132,3 +132,28 @@ button:disabled {
 }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+.form-group label {
+    display: inline-block;
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: #ccc;
+}
+
+.form-group input:not([type="checkbox"]),
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+    background: #000;
+    color: #00ff00;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+.form-group input[type="checkbox"] {
+    width: auto;
+    padding: 0;
+    margin: 0 6px 0 0;
+    vertical-align: middle;
+}

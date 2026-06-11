@@ -51,7 +51,7 @@ public class CmpUtils {
 		String displayTitle = String.format("[%s %s] %s"
 				, resourceType.getDisplayName()
 				, targetName
-				, taskAction.getActionName()
+				, taskAction.getName()
 		);
 		
 		return new CmpTaskHistoryDto(

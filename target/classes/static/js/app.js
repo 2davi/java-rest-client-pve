@@ -111,6 +111,10 @@ const app = createApp({
 				if(valA === undefined || valA === null) valA = '';
 				if(valB === undefined || valB === null) valB = '';
 				
+				if(sortKey.value === 'vmid' || sortKey.value === 'uptime') {
+					return (Number(valA) - Number(valB)) * sortOrder.value;
+				}
+				
 				if(typeof valA === 'string') valA = valA.toLowerCase();
 				if(typeof valB === 'string') valB = valB.toLowerCase();
 				
@@ -182,7 +186,10 @@ const app = createApp({
 				if(lastLog && lastLog.t.startsWith('TASK ')) {
 					stopWatchingLogs();
 					
-					fetchVmList();
+					setTimeout(() => {
+						fetchVmList();
+						fetchTasks();
+					}, 1500);
 				}
 			} catch(error) {
 				console.error("로그 조회 실패:", error);
@@ -291,7 +298,98 @@ const app = createApp({
 			}
 		};
 		
+		/* VM Clone */
+		const isCloneModalOpen = ref(false);
+		const cloneForm = ref({
+			sourceVmid: null
+			, newVmid: null
+			, name: ''
+			, isFull: true
+		});
 		
+		const openCloneModal = vmid => {
+			cloneForm.value = {
+				sourceVmid: vmid
+				, newVmid: Number(vmid) + 100
+				, name: ''
+				, isFull: true
+			};
+			isCloneModalOpen.value = true;
+		};
+		const closeCloneModal = () => {
+			isCloneModalOpen.value = false;
+		};
+		
+		const submitCloneVm = async () => {
+			if(!cloneForm.value.sourceVmid) {
+				alert("타겟 VMID를 어떻게 지웠냐?");
+				return;
+			}
+			if(!cloneForm.value.newVmid) {
+				alert("복제할 새 VMID는 필수다.");
+				return;
+			}
+			
+			try{
+				const response = await api.post(`/proxmox/nodes/${targetNode.value}/qemu/${cloneForm.value.sourceVmid}/clone`, {
+					newVmid: cloneForm.value.newVmid
+					, name: cloneForm.value.name
+					, isFull: cloneForm.value.isFull
+				});
+				
+				targetUpid.value = response.data.upid;
+				closeCloneModal();
+				fetchTasks();
+				startWatchingLogs();
+			} catch(error) {
+				console.error(error);
+				alert("복제 실패! 권한이나 VMID 누락 여부 확인");
+			}
+		};
+		
+		/* VM Destroy */
+		const isDestroyModalOpen = ref(false);
+		const destroyForm = ref({
+			vmid: ''
+			, purge: true
+			, destroyUnreferencedDisk: true
+		});
+		
+		const openDestroyModal = vmid => {
+			destroyForm.value = {
+				vmid: vmid
+				, purge: true
+				, destroyUnreferencedDisk: true
+			};
+			isDestroyModalOpen.value = true;
+		};
+		const closeDestroyModal = () => {
+			isDestroyModalOpen.value = false;
+		};
+		
+		const submitDestroyVm = async () => {
+			if(!destroyForm.value.vmid) {
+				alert("타겟 VMID를 어떻게 지웠냐?");
+				return;
+			}
+			
+			try{
+				const response = await api.delete(`/proxmox/nodes/${targetNode.value}/qemu/${destroyForm.value.vmid}`, {
+					data: {
+						purge: destroyForm.value.purge
+						, destroyUnreferencedDisk: destroyForm.value.destroyUnreferencedDisk
+					}
+				});
+				
+				targetUpid.value = response.data.upid;
+				closeDestroyModal();
+				fetchTasks();
+				startWatchingLogs();
+			} catch(error) {
+				console.error(error);
+				alert("삭제 실패! VM이 켜져있거나 Lock이 걸려있는지 확인!");
+			}
+		};
 		
 		onMounted(async () => {
 			/* sessionStorage 기반으로 jwtToken 복원 */
@@ -339,7 +437,17 @@ const app = createApp({
 			jwtToken,
 			loginForm,
 			handleLogin,
-			handleLogout
+			handleLogout,
+			isCloneModalOpen,
+			cloneForm,
+			openCloneModal,
+			closeCloneModal,
+			submitCloneVm,
+			isDestroyModalOpen,
+			destroyForm,
+			openDestroyModal,
+			closeDestroyModal,
+			submitDestroyVm
 		};
 	}
 });
