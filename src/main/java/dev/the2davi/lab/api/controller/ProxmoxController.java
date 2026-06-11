@@ -16,20 +16,22 @@ import dev.the2davi.lab.api.dto.CmpTaskHistoryDto;
 import dev.the2davi.lab.api.dto.ProxmoxNodeDto;
 import dev.the2davi.lab.api.dto.ProxmoxStorageDto;
 import dev.the2davi.lab.api.dto.ProxmoxTaskLogDto;
-import dev.the2davi.lab.api.dto.ProxmoxTaskStatusDto;
 import dev.the2davi.lab.api.dto.ProxmoxVmCloneDto;
 import dev.the2davi.lab.api.dto.ProxmoxVmDestroyDto;
 import dev.the2davi.lab.api.dto.ProxmoxVmDto;
 import dev.the2davi.lab.api.service.ProxmoxService;
+import dev.the2davi.lab.audit.service.AuditService;
 
 @RestController
 @RequestMapping("/api/proxmox")
 public class ProxmoxController {
 
 	private final ProxmoxService pveService;
+	private final AuditService audit;
 	
-	public ProxmoxController(ProxmoxService pveService) {
+	public ProxmoxController(ProxmoxService pveService, AuditService audit) {
 		this.pveService = pveService;
+		this.audit = audit;
 	}
 	
 	@GetMapping("/nodes")
@@ -38,38 +40,38 @@ public class ProxmoxController {
 		return ResponseEntity.ok(nodes);
 	}
 	
-	@PostMapping("/nodes/{node}/qemu/{vmid}/status/{action}")
-	//public ResponseEntity<String> controlVm(
-	public ResponseEntity<Map<String, String>> controlVm(
-			@PathVariable("node") String node
-			, @PathVariable("vmid") int vmid
-			, @PathVariable("action") String action) {
-		
-		if(!action.equals("start") && !action.equals("stop") && !action.equals("shutdown")) {
-			//return ResponseEntity.badRequest().body("지원하지 않는 명령.");
-			return ResponseEntity.badRequest().build();
-		}
-		
-		String rawResponse = pveService.controlVmStatus(node, vmid, action);
-		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
-		
-		pveService.monitorTaskStatus(node, upid);
-		
-		//return ResponseEntity.ok("명령 전송 성공. Task ID: " + rawResponse);
-		return ResponseEntity.ok(Map.of(
-				"message", "작업 시작됨",
-				"upid", upid
-				));
-	}
+//	@PostMapping("/nodes/{node}/qemu/{vmid}/status/{action}")
+//	//public ResponseEntity<String> controlVm(
+//	public ResponseEntity<Map<String, String>> controlVm(
+//			@PathVariable("node") String node
+//			, @PathVariable("vmid") int vmid
+//			, @PathVariable("action") String action) {
+//		
+//		if(!action.equals("start") && !action.equals("stop") && !action.equals("shutdown")) {
+//			//return ResponseEntity.badRequest().body("지원하지 않는 명령.");
+//			return ResponseEntity.badRequest().build();
+//		}
+//		
+//		String rawResponse = pveService.controlVmStatus(node, vmid, action);
+//		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
+//		
+//		pveService.monitorTaskStatus(node, upid);
+//		
+//		//return ResponseEntity.ok("명령 전송 성공. Task ID: " + rawResponse);
+//		return ResponseEntity.ok(Map.of(
+//				"message", "작업 시작됨",
+//				"upid", upid
+//				));
+//	}
 	
-	@GetMapping("/nodes/{node}/task/{upid}/status")
-	public ResponseEntity<ProxmoxTaskStatusDto> checkTaskStatus(
-			@PathVariable("node") String node
-			, @PathVariable("upid") String upid) {
-		
-		ProxmoxTaskStatusDto statusInfo = pveService.getTaskStatus(node, upid);
-		return ResponseEntity.ok(statusInfo);
-	}
+//	@GetMapping("/nodes/{node}/task/{upid}/status")
+//	public ResponseEntity<ProxmoxTaskStatusDto> checkTaskStatus(
+//			@PathVariable("node") String node
+//			, @PathVariable("upid") String upid) {
+//		
+//		ProxmoxTaskStatusDto statusInfo = pveService.getTaskStatus(node, upid);
+//		return ResponseEntity.ok(statusInfo);
+//	}
 	
 	@GetMapping("/nodes/{node}/tasks/{upid}/log")
 	public ResponseEntity<List<ProxmoxTaskLogDto>> getTaskLog(
@@ -117,7 +119,7 @@ public class ProxmoxController {
 		String rawResponse = pveService.cloneVm(node, vmid, dto);
 		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
 		
-		pveService.monitorTaskStatus(node, upid);
+		audit.auditTaskStatus(node, upid);
 		
 		return ResponseEntity.ok(Map.of(
 				"message", "VM 복제 작업 시작됨",
@@ -133,8 +135,8 @@ public class ProxmoxController {
 			, @RequestBody ProxmoxVmDestroyDto dto) {
 		String rawResponse = pveService.deleteVm(node, vmid, dto);
 		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
-		
-		pveService.monitorTaskStatus(node, upid);
+
+		audit.auditTaskStatus(node, upid);
 		
 		return ResponseEntity.ok(Map.of(
 				"message", "VM 삭제 작업 시작됨",
