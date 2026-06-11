@@ -1,4 +1,4 @@
-const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+const { createApp, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
 
 const app = createApp({
 	setup() {
@@ -10,7 +10,11 @@ const app = createApp({
 		const targetNode = ref('pve');
 		const targetUpid = ref('');
 		const jwtToken = ref('');
+		const userProfile = ref({
+			username: ''
+		});
 		const TOKEN_KEY = 'cmp_jwt';
+		const USER_KEY = 'cmp_username';
 		const loginForm = ref({
 			username: '', password: ''
 		});
@@ -48,6 +52,8 @@ const app = createApp({
 		/* Auth */
 		const clearSession = () => {
 			sessionStorage.removeItem(TOKEN_KEY);
+			sessionStorage.removeItem(USER_KEY);
+			userProfile.value = {};
 			jwtToken.value = '';
 			//런타임(handleLogout)에서만 호출되니, 뒤에 선언된 함수 참조해도 문제 없음.
 			stopWatchingLogs();
@@ -65,6 +71,8 @@ const app = createApp({
 				const token = response.data.token;
 				jwtToken.value = token;
 				sessionStorage.setItem(TOKEN_KEY, token);
+				sessionStorage.setItem(USER_KEY, loginForm.value.username);
+				userProfile.value.username = loginForm.value.username;
 				
 				//로그인 성공할 시에 백엔드 데이터 동시다발 호출
 				await fetchTasks();
@@ -170,6 +178,7 @@ const app = createApp({
 			}
 		};
 		
+		const logContainer = ref(null); //log 패널 HTML 태그를 담음.
 		const fetchLogs = async () => {
 			if(!targetUpid.value) {
 				alert("조회할 Task를 먼저 선택하세요.");
@@ -180,6 +189,11 @@ const app = createApp({
 				//1) TaskLog 조회 API 호출
 				const response = await api.get(`/proxmox/nodes/${targetNode.value}/tasks/${targetUpid.value}/log`);
 				taskLogs.value = response.data;
+				
+				await nextTick();
+				if(logContainer.value) {
+					logContainer.value.scrollTop = logContainer.value.scrollHeight;
+				}
 				
 				//2) 로그 끝났는지 체크
 				const lastLog = taskLogs.value[taskLogs.value.length -1];
@@ -394,8 +408,10 @@ const app = createApp({
 		onMounted(async () => {
 			/* sessionStorage 기반으로 jwtToken 복원 */
 			const savedToken = sessionStorage.getItem(TOKEN_KEY);
+			const savedUsername = sessionStorage.getItem(USER_KEY);
 			if(savedToken) {
 				jwtToken.value = savedToken;
+				if(savedUsername) {userProfile.value.username = savedUsername;}
 				
 				await fetchTasks();
 				await fetchVmList();
@@ -447,7 +463,10 @@ const app = createApp({
 			destroyForm,
 			openDestroyModal,
 			closeDestroyModal,
-			submitDestroyVm
+			submitDestroyVm,
+			fetchVmList,
+			logContainer,
+			userProfile
 		};
 	}
 });
