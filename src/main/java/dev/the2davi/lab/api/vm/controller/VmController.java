@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import dev.the2davi.lab.api.vm.dto.ProxmoxVmCloneDto;
@@ -23,18 +24,24 @@ import dev.the2davi.lab.monitor.TaskMonitor;
 @RequestMapping("/api/proxmox")
 public class VmController {
 	private final VmService service;
-	private final TaskMonitor audit;
+	private final TaskMonitor monitor;
 	
-	public VmController(VmService service, TaskMonitor audit) {
+	public VmController(VmService service, TaskMonitor monitor) {
 		this.service = service;
-		this.audit = audit;
+		this.monitor = monitor;
 	}
 	
 	/* VM List */
-	@GetMapping("/nodes/{node}/qemu")
-	public ResponseEntity<List<ProxmoxVmDto>> getVmList(@PathVariable String node) {
+	@GetMapping("/cluster/qemu")
+	public ResponseEntity<List<ProxmoxVmDto>> getVmList() {
 		//return ResponseEntity.ok(service.getVmList(node));
 		return ResponseEntity.ok(service.getVmList());
+	}
+	
+	/* VM Info */
+	@GetMapping("/nodes/{node}/qemu/{vmid}/config")
+	public ResponseEntity<ProxmoxVmDto> getVmConfig() {
+		return ResponseEntity.ok(service.getVmConfig());
 	}
 	
 	/* VM Control */
@@ -50,7 +57,7 @@ public class VmController {
 		String type = seg.length > 5 ? seg[5] : "";
 		
 		
-		audit.auditTaskStatus(node, upid);
+		monitor.traceTaskStatus(node, upid);
 		return ResponseEntity.ok(Map.of(
 				"message", TaskType.from(type).getDisplayName(),
 				"upid", upid
@@ -66,7 +73,7 @@ public class VmController {
 		String rawResponse = service.cloneVm(node, vmid, dto);
 		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
 		
-		audit.auditTaskStatus(node, upid);
+		monitor.traceTaskStatus(node, upid);
 		
 		return ResponseEntity.ok(Map.of(
 				"message", "VM 복제 작업 시작됨",
@@ -83,10 +90,26 @@ public class VmController {
 		String rawResponse = service.deleteVm(node, vmid, dto);
 		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
 
-		audit.auditTaskStatus(node, upid);
+		monitor.traceTaskStatus(node, upid);
 		
 		return ResponseEntity.ok(Map.of(
 				"message", "VM 삭제 작업 시작됨",
+				"upid", upid
+		));
+	}
+	
+	/* Create Template */
+	@PostMapping("/nodes/{node}/qemu/{vmid}/template")
+	public ResponseEntity<Map<String, String>> createTemplate(
+			@PathVariable String node
+			, @PathVariable int vmid
+			, @RequestParam String disk) {
+		String rawResponse = service.createTemplate(node, vmid, disk);
+		String upid = rawResponse.replace("{\"data\":\"", "").replace("\"}", "").trim();
+		
+		monitor.traceTaskStatus(node, upid);
+		return ResponseEntity.ok(Map.of(
+				"message", "VM 템플릿 전환 시작됨",
 				"upid", upid
 		));
 	}

@@ -1,7 +1,5 @@
 package dev.the2davi.lab.monitor;
 
-import java.time.Instant;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -27,8 +25,7 @@ public class TaskMonitor {
 	}
 	
 	@Async
-	public void auditTaskStatus(String node, String upid) {
-		final Instant startedAt = Instant.now();
+	public void traceTaskStatus(String node, String upid) {
 		MDC.put("upid", upid);
 		try{
 			log.info("백그라운드 감시 시작");

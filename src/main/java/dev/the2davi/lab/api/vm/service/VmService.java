@@ -52,6 +52,11 @@ public class VmService {
 				: Collections.emptyList();
 	}
 	
+	/* VM Info */
+	public ProxmoxVmDto getVmConfig() {
+		return null;
+	}
+	
 	/* VM Control */
 	public String controlVmStatus(String node, int vmid, String action) {
 		String uri = String.format("/nodes/%s/qemu/%d/status/%s", node, vmid, action);
@@ -94,6 +99,16 @@ public class VmService {
 				Boolean.TRUE.equals(dto.purge()) ? 1 : 0, 
 				Boolean.TRUE.equals(dto.destroyUnreferencedDisk()) ? 1 : 0
 		);
+		
+		return restClient.delete()
+				.uri(uri)
+				.retrieve()
+				.body(String.class);
+	}
+	
+	/* Create Template */
+	public String createTemplate(String node, int vmid, String disk) {
+		String uri = String.format("/nodes/%s/qemu/%d?disk=%s", node, vmid, disk);
 		
 		return restClient.delete()
 				.uri(uri)
