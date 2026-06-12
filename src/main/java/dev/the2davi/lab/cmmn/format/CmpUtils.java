@@ -30,6 +30,7 @@ public class CmpUtils {
 		
 		return new CmpTaskHistoryDto(
 				raw.upid()
+				, raw.node()
 				, resourceType.name()
 				, raw.id()
 				, taskAction.name()
