@@ -34,7 +34,7 @@
 			
 			<div class="panel">
 	            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
-	                <h3 style="margin: 0;">Virtual Machines [Node: {{ targetNode }}]<button class="btn" style="padding: 2px 8px; font-size: 18px; background: none;" @click="fetchVmList">🔄 </button></h3>
+	                <h3 style="margin: 0;">Virtual Machines <span style="font-size:12px;color:#888;font-weight:normal;">(Datacenter · 전 노드)</span><button class="btn" style="padding: 2px 8px; font-size: 18px; background: none;" @click="fetchVmList">🔄 </button></h3>
 					<button class="btn" style="background: #e67e22; margin-right: 15px;" @click="openStorageModal">
 	                    💾 스토리지 추가
 	                </button>
@@ -49,6 +49,9 @@
 	                    <tr>
 	                        <th @click="sortBy('vmid')" class="sortable">
 	                            VMID <span v-if="sortKey === 'vmid'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
+	                        </th>
+	                        <th @click="sortBy('node')" class="sortable">
+	                            노드 <span v-if="sortKey === 'node'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
 	                        </th>
 	                        <th @click="sortBy('name')" class="sortable">
 	                            이름 <span v-if="sortKey === 'name'" class="sort-icon">{{ sortOrder === 1 ? '▲' : '▼' }}</span>
@@ -65,6 +68,7 @@
 	                <tbody>
 	                    <tr v-for="vm in sortedVmList" :key="vm.vmid">
 	                        <td>{{ vm.vmid }}</td>
+	                        <td>{{ vm.node }}</td>
 	                        <td>{{ vm.name }}</td>
 	                        <td>
 								<span :key="'status-'+vm.status" class="flash-text">
@@ -79,16 +83,56 @@
 								</span>
 							</td>
 	                        <td>
-	                            <button class="btn btn-start" @click="controlVm(vm.vmid, 'start')" :disabled="vm.status === 'running'">Start</button>
-	                            <button class="btn btn-stop" @click="controlVm(vm.vmid, 'shutdown')" :disabled="vm.status !== 'running'">Shutdown</button>
-								<button class="btn" style="background: #8e44ad;" @click="openCloneModal(vm.vmid)">Clone</button>
-	                            <button class="btn" style="background: #c0392b;" @click="openDestroyModal(vm.vmid)" :disabled="vm.status !== 'stopped'">Delete</button>
+	                            <button class="btn btn-start" @click="controlVm(vm, 'start')" :disabled="vm.status === 'running'">Start</button>
+	                            <button class="btn btn-stop" @click="controlVm(vm, 'shutdown')" :disabled="vm.status !== 'running'">Shutdown</button>
+								<button class="btn" style="background: #8e44ad;" @click="openCloneModal(vm)">Clone</button>
+	                            <button class="btn" style="background: #c0392b;" @click="openDestroyModal(vm)" :disabled="vm.status !== 'stopped'">Delete</button>
 	                        </td>
 	                    </tr>
 	                </tbody>
 	            </table>
 	        </div>
 	
+	        <div class="panel">
+	            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
+	                <h3 style="margin: 0;">Network
+	                    <select v-model="selectedNode" @change="onNodeChange" style="margin-left: 10px; padding: 4px; background: #000; color: #00ff00; border: 1px solid #333; border-radius: 4px;">
+	                        <option v-for="n in nodes" :key="n.node" :value="n.node">{{ n.node }}</option>
+	                    </select>
+	                    <button class="btn" style="padding: 2px 8px; font-size: 18px; background: none;" @click="fetchNetwork(selectedNode)">🔄</button>
+	                </h3>
+	            </div>
+
+	            <table class="vm-table">
+	                <thead>
+	                    <tr>
+	                        <th>인터페이스</th>
+	                        <th>타입</th>
+	                        <th>Method</th>
+	                        <th>CIDR / 주소</th>
+	                        <th>Gateway</th>
+	                        <th>Bridge Ports</th>
+	                        <th>Active</th>
+	                        <th>Autostart</th>
+	                        <th>비고</th>
+	                    </tr>
+	                </thead>
+	                <tbody>
+	                    <tr v-for="net in networkList" :key="net.iface">
+	                        <td>{{ net.iface }}</td>
+	                        <td><span class="badge" style="background: #34495e;">{{ net.type }}</span></td>
+	                        <td>{{ net.method || '-' }}</td>
+	                        <td>{{ net.cidr || net.address || '-' }}</td>
+	                        <td>{{ net.gateway || '-' }}</td>
+	                        <td>{{ net.bridge_ports || '-' }}</td>
+	                        <td><span :class="['badge', net.active ? 'on' : 'off']">{{ net.active ? 'up' : 'down' }}</span></td>
+	                        <td>{{ net.autostart ? 'Y' : 'N' }}</td>
+	                        <td style="font-size: 12px; color: #aaa;">{{ net.comments || '' }}</td>
+	                    </tr>
+	                </tbody>
+	            </table>
+	        </div>
+
 	        <div class="panel terminal-box">
 	            <h3>Task Logs ({{ targetUpid || '' }})</h3>
 	            
@@ -115,46 +159,23 @@
 	                
 	                <div class="form-group">
 	                    <label>스토리지 타입</label>
-	                    <select v-model="storageForm.type" @change="onTypeChange">
-	                        <option value="nfs">NFS (네트워크 파일 시스템)</option>
-	                        <option value="lvmthin">LVM-Thin (로컬 씬 프로비저닝)</option>
-	                        <option value="rbd">Ceph RBD (분산 블록 스토리지)</option>
+	                    <select v-model="storageForm.type" @change="onStorageTypeChange">
+	                        <option v-for="opt in storageTypeOptions" :key="opt.value" :value="opt.value">
+								{{ opt.label }}
+							</option>
 	                    </select>
 	                </div>
 	
+					<!-- 타입에 의존하지 않는 공통 필드 '이름'은 하드 코딩 -->
 	                <div class="form-group">
 	                    <label>스토리지 이름 (ID)</label>
 	                    <input type="text" v-model="storageForm.storage" placeholder="예: my-storage" />
 	                </div>
-	
-	                <template v-if="storageForm.type === 'nfs'">
-	                    <div class="form-group">
-	                        <label>NFS 서버 IP</label>
-	                        <input type="text" v-model="storageForm.config.server" placeholder="예: 192.168.10.50" />
-	                    </div>
-	                    <div class="form-group">
-	                        <label>Export 경로</label>
-	                        <input type="text" v-model="storageForm.config.export" placeholder="예: /volume1/nfs" />
-	                    </div>
-	                </template>
-	
-	                <template v-if="storageForm.type === 'lvmthin'">
-	                    <div class="form-group">
-	                        <label>볼륨 그룹 (Volume Group)</label>
-	                        <input type="text" v-model="storageForm.config.vgname" placeholder="예: pve" />
-	                    </div>
-	                    <div class="form-group">
-	                        <label>씬 풀 (Thin Pool)</label>
-	                        <input type="text" v-model="storageForm.config.thinpool" placeholder="예: data" />
-	                    </div>
-	                </template>
-	                
-	                <template v-if="storageForm.type === 'rbd'">
-	                    <div class="form-group">
-	                        <label>Ceph Pool 이름</label>
-	                        <input type="text" v-model="storageForm.config.pool" placeholder="예: ceph-data" />
-	                    </div>
-	                </template>
+
+	                <div v-for="field in storageFields" :key="field.key" class="form-group">
+						<label>{{ field.label }}</label>
+						<input type="text" v-model="storageForm.config[field.key]" :placeholder="field.placeholder" />
+					</div>
 	
 	                <div class="form-group">
 	                    <label>콘텐츠 용도</label>
@@ -229,7 +250,8 @@
 	        </div>
 	    </div>
     </div>
-
+	
+	<script src="/js/useModalForm.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

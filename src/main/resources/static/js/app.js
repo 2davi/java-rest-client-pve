@@ -1,4 +1,55 @@
-const { createApp, ref, computed, onMounted, onUnmounted, nextTick } = Vue;
+const { createApp, computed, onMounted, onUnmounted, nextTick } = Vue;
+
+/** FormData 기본값 팩토리 */
+const DEFAULT_STORAGE_TYPE = 'nfs';
+const STORAGE_TYPE_SCHEMA = {
+	nfs: {
+		label: 'NFS',
+		fields: [
+			{ key: 'server', label: 'NFS ServerIP',   placeholder: '예: 192.168.10.50'    },
+			{ key: 'export', label: 'Export Path',    placeholder: '예: /srv/volume1/nfs' },
+		],
+	},
+	lvmthin: {
+		label: 'LVM-Thin',
+		fields: [
+			{ key: 'vgname', label: 'VolumeGroup',    placeholder: '예: pve'  },
+			{ key: 'thinpool', label: 'Thin Pool',      placeholder: '예: data' },
+		],
+	},
+	rbd: {
+		label: 'Ceph RBD',
+		fields: [
+			{ key: 'pool',   label: 'Ceph Pool Name', placeholder: '예: ceph-data' },
+		],
+	},
+};
+
+const buildStorageConfig = type =>
+	Object.fromEntries(( STORAGE_TYPE_SCHEMA[type]?.fields ?? [] ).map( f => [f.key, ''] ));
+
+const createStorageForm = () => ({
+	type: DEFAULT_STORAGE_TYPE,
+	storage: '',
+	content: 'images,iso,backup',
+	config: buildStorageConfig(DEFAULT_STORAGE_TYPE), // 중첩 객체도 매번 새로
+});
+
+const createCloneForm = () => ({
+	node: '',          // 소스 VM의 현재 노드(작업 라우팅용)
+	sourceVmid: null,
+	newVmid: null,
+	name: '',
+	isFull: true,
+});
+
+const createDestroyForm = () => ({
+	node: '',          // 대상 VM의 현재 노드
+	vmid: null,
+	purge: true,
+	destroyUnreferencedDisk: true,
+});
+
 
 const app = createApp({
 	setup() {
@@ -7,7 +58,8 @@ const app = createApp({
 		const taskList = ref([]);
 		const taskLogs = ref([]);
 		const isPolling = ref(false);
-		const targetNode = ref('pve');
+		// UPID 2번째 세그먼트가 노드다 → UPID:<node>:pid:pstart:starttime:type:id:user:
+		const nodeFromUpid = (upid) => (upid ?? '').split(':')[1] ?? '';
 		const targetUpid = ref('');
 		const jwtToken = ref('');
 		const userProfile = ref({
@@ -22,6 +74,11 @@ const app = createApp({
 		let logPollingTimer = null;
 		
 		const vmList = ref([]);
+		
+		/* Network (노드 선택 기반) */
+		const nodes = ref([]);            // 노드 드롭다운 목록
+		const selectedNode = ref('');     // 현재 선택 노드
+		const networkList = ref([]);      // 선택 노드의 인터페이스 목록
 		
 		let vmPollingTimer = null;
 		const formatUptime = seconds => {
@@ -78,6 +135,7 @@ const app = createApp({
 				await fetchTasks();
 				await fetchVmList();
 				startWatchingVmList();
+				fetchNodes();
 			} catch(error) {
 				const pd = error.response?.data;
 				alert(pd?.detail ?? "인증 실패 ^ㅂ^");
@@ -171,7 +229,7 @@ const app = createApp({
 		
 		const fetchTasks = async () => {
 			try {
-				const response = await api.get(`/proxmox/nodes/${targetNode.value}/tasks`);
+				const response = await api.get('/proxmox/cluster/tasks'); // 데이터센터 스코프
 				taskList.value = response.data;
 			} catch(error) {
 				console.error("작업 조회 실패:", error);
@@ -187,7 +245,8 @@ const app = createApp({
 			
 			try{
 				//1) TaskLog 조회 API 호출
-				const response = await api.get(`/proxmox/nodes/${targetNode.value}/tasks/${targetUpid.value}/log`);
+				const node = nodeFromUpid(targetUpid.value); // targetNode 대신 UPID에서 추출
+				const response = await api.get(`/proxmox/nodes/${node}/tasks/${targetUpid.value}/log`);
 				taskLogs.value = response.data;
 				
 				await nextTick();
@@ -250,20 +309,20 @@ const app = createApp({
 		
 		const fetchVmList = async () => {
 			try{
-				const response = await api.get(`/proxmox/nodes/${targetNode.value}/qemu`);
+				const response = await api.get('/proxmox/cluster/qemu'); // 데이터센터 스코프
 				vmList.value = response.data;
 			} catch(error) {
 				console.error("VM 목록 조회 실패", error);
 			}
 		};
 		
-		const controlVm = async (vmid, action) => {
-			if(!confirm(`${vmid}번 VM을 ${action} 하시겠습니까?`)) {
+		const controlVm = async (vm, action) => {
+			if(!confirm(`${vm.vmid}번 VM을 ${action} 하시겠습니까?`)) {
 				return;
 			}
 			
 			try{
-				const response = await api.post(`/proxmox/nodes/${targetNode.value}/qemu/${vmid}/status/${action}`);
+				const response = await api.post(`/proxmox/nodes/${vm.node}/qemu/${vm.vmid}/status/${action}`);
 				const newUpid = response.data.upid;
 				if(newUpid) {
 					targetUpid.value = newUpid;
@@ -277,25 +336,52 @@ const app = createApp({
 		};
 		
 		
+		/* Network */
+		const fetchNodes = async () => {
+			try {
+				const response = await api.get('/proxmox/nodes');
+				nodes.value = response.data;
+				// 선택 노드 없으면 첫 노드 자동 선택 후 네트워크 로드
+				if(!selectedNode.value && nodes.value.length > 0) {
+					selectedNode.value = nodes.value[0].node;
+					fetchNetwork(selectedNode.value);
+				}
+			} catch(error) {
+				console.error("노드 목록 조회 실패", error);
+			}
+		};
+		const fetchNetwork = async (node) => {
+			if(!node) return;
+			try {
+				const response = await api.get(`/proxmox/nodes/${node}/network`);
+				networkList.value = response.data;
+			} catch(error) {
+				console.error("네트워크 조회 실패", error);
+			}
+		};
+		const onNodeChange = () => fetchNetwork(selectedNode.value);
+		
+		
 		/* Storage */
-		const storageFormInit = {
-			type: 'nfs'
-			, storage: ''
-			, content: 'images,iso,backup'
-			, config: {}
-		}
-		const isStorageModalOpen = ref(false);
-		const storageForm = ref(storageFormInit);
+		const {
+			form: storageForm
+			, isOpen: isStorageModalOpen
+			, open: openStorageBase
+			, close: closeStorageModal
+		} = useModalForm(createStorageForm);
 		
-		const openStorageModal = () => isStorageModalOpen.value = true;
-		const closeStorageModal = () => {
-			isStorageModalOpen.value = false;
-			storageForm.value = storageFormInit;
+		//@click="openStorageModal"에서 이벤트를 인자로 넘긴다.
+		const openStorageModal = () => openStorageBase();
+		const onStorageTypeChange = () => {
+			storageForm.value.config = buildStorageConfig(storageForm.value.type);
 		};
 		
-		const onTypeChange = () => {
-			storageForm.value.config = {};
-		};
+		const storageTypeOptions = Object.entries(STORAGE_TYPE_SCHEMA)
+				.map(([value, { label }]) => ({ value, label }));
+		const storageFields = computed(
+			() => STORAGE_TYPE_SCHEMA[storageForm.value.type]?.fields ?? []
+		);
+		
 		const submitStorage = async () => {
 			if(!storageForm.value.storage) {
 				alert("스토리지 이름을 입력하세요.");
@@ -313,26 +399,14 @@ const app = createApp({
 		};
 		
 		/* VM Clone */
-		const isCloneModalOpen = ref(false);
-		const cloneForm = ref({
-			sourceVmid: null
-			, newVmid: null
-			, name: ''
-			, isFull: true
-		});
-		
-		const openCloneModal = vmid => {
-			cloneForm.value = {
-				sourceVmid: vmid
-				, newVmid: Number(vmid) + 100
-				, name: ''
-				, isFull: true
-			};
-			isCloneModalOpen.value = true;
-		};
-		const closeCloneModal = () => {
-			isCloneModalOpen.value = false;
-		};
+		const {
+			form: cloneForm
+			, isOpen: isCloneModalOpen
+			, open: openCloneBase
+			, close: closeCloneModal
+		} = useModalForm(createCloneForm);
+		const openCloneModal = vm =>
+				openCloneBase({ node: vm.node, sourceVmid: vm.vmid, newVmid: Number(vm.vmid) + 100 });
 		
 		const submitCloneVm = async () => {
 			if(!cloneForm.value.sourceVmid) {
@@ -345,7 +419,7 @@ const app = createApp({
 			}
 			
 			try{
-				const response = await api.post(`/proxmox/nodes/${targetNode.value}/qemu/${cloneForm.value.sourceVmid}/clone`, {
+				const response = await api.post(`/proxmox/nodes/${cloneForm.value.node}/qemu/${cloneForm.value.sourceVmid}/clone`, {
 					newVmid: cloneForm.value.newVmid
 					, name: cloneForm.value.name
 					, isFull: cloneForm.value.isFull
@@ -362,24 +436,13 @@ const app = createApp({
 		};
 		
 		/* VM Destroy */
-		const isDestroyModalOpen = ref(false);
-		const destroyForm = ref({
-			vmid: ''
-			, purge: true
-			, destroyUnreferencedDisk: true
-		});
-		
-		const openDestroyModal = vmid => {
-			destroyForm.value = {
-				vmid: vmid
-				, purge: true
-				, destroyUnreferencedDisk: true
-			};
-			isDestroyModalOpen.value = true;
-		};
-		const closeDestroyModal = () => {
-			isDestroyModalOpen.value = false;
-		};
+		const {
+			form: destroyForm
+			, isOpen: isDestroyModalOpen
+			, open: openDestroyBase
+			, close: closeDestroyModal
+		} = useModalForm(createDestroyForm);
+		const openDestroyModal = vm => openDestroyBase({ node: vm.node, vmid: vm.vmid });
 		
 		const submitDestroyVm = async () => {
 			if(!destroyForm.value.vmid) {
@@ -388,7 +451,7 @@ const app = createApp({
 			}
 			
 			try{
-				const response = await api.delete(`/proxmox/nodes/${targetNode.value}/qemu/${destroyForm.value.vmid}`, {
+				const response = await api.delete(`/proxmox/nodes/${destroyForm.value.node}/qemu/${destroyForm.value.vmid}`, {
 					data: {
 						purge: destroyForm.value.purge
 						, destroyUnreferencedDisk: destroyForm.value.destroyUnreferencedDisk
@@ -416,6 +479,7 @@ const app = createApp({
 				await fetchTasks();
 				await fetchVmList();
 				startWatchingVmList();
+				fetchNodes();
 			} else {
 				console.debug("저장된 세션 없음 - 로그인 화면");
 			}
@@ -431,7 +495,6 @@ const app = createApp({
 			taskList,
 			taskLogs,
 			isPolling,
-			targetNode,
 			targetUpid,
 			onTaskSelect,
 			startWatchingLogs,
@@ -444,11 +507,13 @@ const app = createApp({
 			sortOrder,
 			sortBy,
 			formatUptime,
-			isStorageModalOpen,
 			storageForm,
+			isStorageModalOpen,
 			openStorageModal,
 			closeStorageModal,
-			onTypeChange,
+			onStorageTypeChange,
+			storageTypeOptions,
+			storageFields,
 			submitStorage,
 			jwtToken,
 			loginForm,
@@ -465,6 +530,11 @@ const app = createApp({
 			closeDestroyModal,
 			submitDestroyVm,
 			fetchVmList,
+			nodes,
+			selectedNode,
+			networkList,
+			fetchNetwork,
+			onNodeChange,
 			logContainer,
 			userProfile
 		};
