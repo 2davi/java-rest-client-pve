@@ -1,11 +1,11 @@
-package dev.the2davi.lab.audit.recorder.impl;
+package dev.the2davi.lab.monitor.recorder.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import dev.the2davi.lab.audit.TaskOutcome;
-import dev.the2davi.lab.audit.recorder.TaskOutcomeRecorder;
+import dev.the2davi.lab.monitor.TaskOutcome;
+import dev.the2davi.lab.monitor.recorder.TaskOutcomeRecorder;
 
 @Component
 public class Slf4jTaskOutcomeRecorder implements TaskOutcomeRecorder {

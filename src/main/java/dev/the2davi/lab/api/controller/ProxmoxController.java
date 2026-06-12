@@ -12,16 +12,16 @@ import org.springframework.web.bind.annotation.RestController;
 import dev.the2davi.lab.api.dto.ProxmoxNodeDto;
 import dev.the2davi.lab.api.dto.ProxmoxStorageDto;
 import dev.the2davi.lab.api.service.ProxmoxService;
-import dev.the2davi.lab.audit.service.AuditService;
+import dev.the2davi.lab.monitor.TaskMonitor;
 
 @RestController
 @RequestMapping("/api/proxmox")
 public class ProxmoxController {
 
 	private final ProxmoxService pveService;
-	private final AuditService audit;
+	private final TaskMonitor audit;
 	
-	public ProxmoxController(ProxmoxService pveService, AuditService audit) {
+	public ProxmoxController(ProxmoxService pveService, TaskMonitor audit) {
 		this.pveService = pveService;
 		this.audit = audit;
 	}

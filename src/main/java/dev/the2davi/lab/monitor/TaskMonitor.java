@@ -1,4 +1,4 @@
-package dev.the2davi.lab.audit.service;
+package dev.the2davi.lab.monitor;
 
 import java.time.Instant;
 
@@ -12,17 +12,16 @@ import org.springframework.web.client.RestClient;
 
 import dev.the2davi.lab.api.dto.ProxmoxResponse;
 import dev.the2davi.lab.api.task.dto.ProxmoxTaskStatusDto;
-import dev.the2davi.lab.audit.TaskOutcome;
-import dev.the2davi.lab.audit.recorder.TaskOutcomeRecorder;
+import dev.the2davi.lab.monitor.recorder.TaskOutcomeRecorder;
 
 @Service
-public class AuditService {
+public class TaskMonitor {
 	
-	private static final Logger log = LoggerFactory.getLogger(AuditService.class);
+	private static final Logger log = LoggerFactory.getLogger(TaskMonitor.class);
 	private final RestClient restClient;
 	private final TaskOutcomeRecorder recorder;
 	
-	public AuditService(RestClient restClient, TaskOutcomeRecorder recorder) {
+	public TaskMonitor(RestClient restClient, TaskOutcomeRecorder recorder) {
 		this.restClient = restClient;
 		this.recorder = recorder;
 	}

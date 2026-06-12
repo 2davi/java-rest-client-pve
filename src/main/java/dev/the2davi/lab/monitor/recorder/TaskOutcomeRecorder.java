@@ -1,6 +1,6 @@
-package dev.the2davi.lab.audit.recorder;
+package dev.the2davi.lab.monitor.recorder;
 
-import dev.the2davi.lab.audit.TaskOutcome;
+import dev.the2davi.lab.monitor.TaskOutcome;
 
 /**
  * <pre>

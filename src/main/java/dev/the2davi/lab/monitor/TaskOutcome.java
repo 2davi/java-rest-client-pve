@@ -1,4 +1,4 @@
-package dev.the2davi.lab.audit;
+package dev.the2davi.lab.monitor;
 
 import java.time.Duration;
 import java.time.Instant;

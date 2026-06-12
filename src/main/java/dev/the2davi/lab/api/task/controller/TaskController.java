@@ -11,15 +11,15 @@ import org.springframework.web.bind.annotation.RestController;
 import dev.the2davi.lab.api.dto.CmpTaskHistoryDto;
 import dev.the2davi.lab.api.task.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.task.service.TaskService;
-import dev.the2davi.lab.audit.service.AuditService;
+import dev.the2davi.lab.monitor.TaskMonitor;
 
 @RestController
 @RequestMapping("/api/proxmox")
 public class TaskController {
 	private final TaskService service;
-	private final AuditService audit;
+	private final TaskMonitor audit;
 	
-	public TaskController(TaskService service, AuditService audit) {
+	public TaskController(TaskService service, TaskMonitor audit) {
 		this.service = service;
 		this.audit = audit;
 	}

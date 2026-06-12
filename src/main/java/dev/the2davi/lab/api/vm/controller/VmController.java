@@ -16,16 +16,16 @@ import dev.the2davi.lab.api.vm.dto.ProxmoxVmCloneDto;
 import dev.the2davi.lab.api.vm.dto.ProxmoxVmDestroyDto;
 import dev.the2davi.lab.api.vm.dto.ProxmoxVmDto;
 import dev.the2davi.lab.api.vm.service.VmService;
-import dev.the2davi.lab.audit.service.AuditService;
 import dev.the2davi.lab.cmmn.type.TaskType;
+import dev.the2davi.lab.monitor.TaskMonitor;
 
 @RestController
 @RequestMapping("/api/proxmox")
 public class VmController {
 	private final VmService service;
-	private final AuditService audit;
+	private final TaskMonitor audit;
 	
-	public VmController(VmService service, AuditService audit) {
+	public VmController(VmService service, TaskMonitor audit) {
 		this.service = service;
 		this.audit = audit;
 	}
