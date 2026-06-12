@@ -304,7 +304,7 @@ const app = createApp({
 			
 			try{
 				await api.post('/proxmox/storage', storageForm.value);
-				alert(`[${storageForm.value.type}] 스토리지 '${sotrageForm.value.storage}' 추가 성공!`);
+				alert(`[${storageForm.value.type}] 스토리지 '${storageForm.value.storage}' 추가 성공!`);
 				closeStorageModal();
 			} catch(error) {
 				console.error(error);
