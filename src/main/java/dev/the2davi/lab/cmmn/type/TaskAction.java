@@ -30,6 +30,7 @@ public enum TaskAction {
 	, RESTORE("복원")
 	, BACKUP("백업")
 	, UPDATE("업데이트")
+	, VNC("VNC")
 	, UNKNOWN("알 수 없음");
 	
 	//private final String keyword;

@@ -41,6 +41,7 @@ public enum TaskType {
 	STOP_ALL   ("stopall",    ResourceType.NODE,      TaskAction.STOP),
 	
 	// ── 미열거/미지원 ───────────────────────────────────────────────
+	VNC_PROXY  ("vncproxy",   ResourceType.VM,        TaskAction.VNC),
 	UNKNOWN    ("",           ResourceType.UNKNOWN,   TaskAction.UNKNOWN);
 	
 	private final String pveType;

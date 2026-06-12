@@ -19,7 +19,7 @@ public class CmpUtils {
 		ResourceType resourceType = taskType.resourceType();
 		TaskAction taskAction = taskType.action();
 		
-		//03. 프론트엔드 UI 전용 문자열 조합
+		//프론트엔드 UI 전용 문자열 조합
 		String targetName = ( raw.id() != null && !raw.id().isEmpty() ) ? raw.id() : raw.node();
 		
 		String displayTitle = String.format("[%s %s] %s"
