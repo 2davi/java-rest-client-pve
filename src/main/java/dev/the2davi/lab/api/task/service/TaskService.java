@@ -22,9 +22,9 @@ public class TaskService {
 		this.restClient = pveRestClient;
 	}
 	
-	/* Task List */
-	public List<CmpTaskHistoryDto> getTaskList(String node) {
-		String uri = String.format("/nodes/%s/tasks", node);
+	/* Task List (Datacenter scope) */
+	public List<CmpTaskHistoryDto> getTaskList() {
+		String uri = "/cluster/tasks";
 		
 		ParameterizedTypeReference<ProxmoxResponse<List<ProxmoxTaskDto>>> responseType = new ParameterizedTypeReference<>() {};
 		

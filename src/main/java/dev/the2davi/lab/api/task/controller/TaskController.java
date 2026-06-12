@@ -11,25 +11,21 @@ import org.springframework.web.bind.annotation.RestController;
 import dev.the2davi.lab.api.dto.CmpTaskHistoryDto;
 import dev.the2davi.lab.api.task.dto.ProxmoxTaskLogDto;
 import dev.the2davi.lab.api.task.service.TaskService;
-import dev.the2davi.lab.monitor.TaskMonitor;
 
 @RestController
 @RequestMapping("/api/proxmox")
 public class TaskController {
 	private final TaskService service;
-	private final TaskMonitor audit;
 	
-	public TaskController(TaskService service, TaskMonitor audit) {
+	public TaskController(TaskService service) {
 		this.service = service;
-		this.audit = audit;
 	}
 	
-	/* Task List */
-	@GetMapping("/nodes/{node}/tasks")
-	public ResponseEntity<List<CmpTaskHistoryDto>> getTaskList(
-			@PathVariable String node) {
+	/* Task List (Datacenter scope) */
+	@GetMapping("/cluster/tasks")
+	public ResponseEntity<List<CmpTaskHistoryDto>> getTaskList() {
 		
-		List<CmpTaskHistoryDto> tasks = service.getTaskList(node);
+		List<CmpTaskHistoryDto> tasks = service.getTaskList();
 		return ResponseEntity.ok(tasks);
 	}
 	
